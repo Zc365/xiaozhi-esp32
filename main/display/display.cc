@@ -64,6 +64,7 @@ Display::~Display() {
         lv_obj_del(mute_label_);
         lv_obj_del(battery_label_);
         lv_obj_del(emotion_label_);
+        lv_obj_del(logo_label_);
     }
 }
 
@@ -226,4 +227,10 @@ void Display::SetBacklight(uint8_t brightness) {
     Settings settings("display", true);
     settings.SetInt("brightness", brightness);
     brightness_ = brightness;
+}
+void Display::SetLogo(const std::string &logo) {
+    DisplayLockGuard lock(this);
+    if (logo_label_) {
+        lv_label_set_text(logo_label_, logo.c_str());
+    }
 }
