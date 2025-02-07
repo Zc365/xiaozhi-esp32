@@ -33,6 +33,7 @@ public:
     ~Ssd1306Display();
 
     virtual void SetChatMessage(const char* role, const char* content) override;
+    DisplayType GetType() const override { return DisplayType::SSD1306; }
 };
 
 #endif // SSD1306_DISPLAY_H
