@@ -21,6 +21,10 @@
 #include <wifi_configuration_ap.h>
 #include <ssid_manager.h>
 
+#include "lcd_display.h"
+
+#define WIFI_SMARTCONFIG_URL	"https://iot.espressif.cn/configWXDeviceWiFi.html"
+
 static const char *TAG = "WifiBoard";
 
 WifiBoard::WifiBoard() {
