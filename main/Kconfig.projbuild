@@ -116,7 +116,7 @@ choice BOARD_TYPE
         bool "正点原子DNESP32S3-BOX"
     config BOARD_TYPE_DU_CHATX
         bool "嘟嘟开发板CHATX(wifi)"       
-    config BOARD_TYPE_PEILIAO_C3
+    config BOARD_TYPE_YUNLIAO_C3
         bool "小智陪聊C3"
     config BOARD_TYPE_ESP32S3_Taiji_Pi
         bool "太极小派esp32s3"
@@ -175,7 +175,7 @@ choice DISPLAY_LCD_TYPE
 endchoice
 
 choice LCD_CONTROLLER
-    depends on BOARD_TYPE_PEILIAO_C3 || BOARD_TYPE_PEILIAO_S3
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
     prompt "LCD controller model"
     default LCD_CONTROLLER_ST7789
     help
@@ -189,14 +189,14 @@ choice LCD_CONTROLLER
 endchoice
 
 config WIFI_FACTORY_SSID
-    depends on BOARD_TYPE_PEILIAO_C3 || BOARD_TYPE_PEILIAO_S3
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
     string "WiFi Factory SSID"
     default ""
     help
         SSID (network name) 
 
 config WIFI_FACTORY_PASSWORD
-    depends on BOARD_TYPE_PEILIAO_C3 || BOARD_TYPE_PEILIAO_S3
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
     string "WiFi Factory Password"
     default ""
     help
