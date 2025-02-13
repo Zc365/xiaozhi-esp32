@@ -117,7 +117,7 @@ choice BOARD_TYPE
     config BOARD_TYPE_DU_CHATX
         bool "嘟嘟开发板CHATX(wifi)"       
     config BOARD_TYPE_YUNLIAO_C3
-        bool "小智陪聊C3"
+        bool "小智云聊C3"
     config BOARD_TYPE_ESP32S3_Taiji_Pi
         bool "太极小派esp32s3"
     config BOARD_TYPE_XINGZHI_Cube_0_96OLED_WIFI
