@@ -63,56 +63,65 @@ void Application::CheckNewVersion() {
     while (true) {
         if (ota_.CheckVersion()) {
             if (ota_.HasNewVersion()) {
-                Alert("Info", "正在升级固件");
-                // Wait for the chat state to be idle
-                do {
-                    vTaskDelay(pdMS_TO_TICKS(3000));
-                } while (GetDeviceState() != kDeviceStateIdle);
-
-                // Use main task to do the upgrade, not cancelable
-                Schedule([this, &board, display]() {
-                    SetDeviceState(kDeviceStateUpgrading);
-                    
-                    display->SetIcon(FONT_AWESOME_DOWNLOAD);
-                    display->SetStatus("新版本 " + ota_.GetFirmwareVersion());
-
-                    board.SetPowerSaveMode(false);
-#if CONFIG_USE_AUDIO_PROCESSING
-                    wake_word_detect_.StopDetection();
-#endif
-                    // 预先关闭音频输出，避免升级过程有音频操作
-                    board.GetAudioCodec()->EnableOutput(false);
-                    {
-                        std::lock_guard<std::mutex> lock(mutex_);
-                        audio_decode_queue_.clear();
-                    }
-                    background_task_->WaitForCompletion();
-                    delete background_task_;
-                    background_task_ = nullptr;
-                    vTaskDelay(pdMS_TO_TICKS(1000));
-
-                    ota_.StartUpgrade([display](int progress, size_t speed) {
-                        char buffer[64];
-                        snprintf(buffer, sizeof(buffer), "%d%% %zuKB/s", progress, speed / 1024);
-                        display->SetStatus(buffer);
-                    });
-
-                    // If upgrade success, the device will reboot and never reach here
-                    display->SetStatus("更新失败");
-                    ESP_LOGI(TAG, "Firmware upgrade failed...");
-                    vTaskDelay(pdMS_TO_TICKS(3000));
-                    esp_restart();
-                });
+                UpdateNewVersion();
             } else {
                 ota_.MarkCurrentVersionValid();
                 display->ShowNotification("版本 " + ota_.GetCurrentVersion());
             }
             return;
         }
-
-        // Check again in 60 seconds
         vTaskDelay(pdMS_TO_TICKS(60000));
     }
+}
+
+bool Application::UpdateNewVersion() {
+    auto& board = Board::GetInstance();
+    auto display = board.GetDisplay();
+    if (ota_.HasNewVersion()) {
+        Alert("Info", "正在升级固件");
+        // Wait for the chat state to be idle
+        do {
+            vTaskDelay(pdMS_TO_TICKS(3000));
+        } while (GetDeviceState() != kDeviceStateIdle);
+
+        // Use main task to do the upgrade, not cancelable
+        Schedule([this, &board, display]() {
+            SetDeviceState(kDeviceStateUpgrading);
+            
+            display->SetIcon(FONT_AWESOME_DOWNLOAD);
+            display->SetStatus("新版本 " + ota_.GetFirmwareVersion());
+
+            board.SetPowerSaveMode(false);
+    #if CONFIG_USE_AUDIO_PROCESSING
+            wake_word_detect_.StopDetection();
+    #endif
+            // 预先关闭音频输出，避免升级过程有音频操作
+            board.GetAudioCodec()->EnableOutput(false);
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                audio_decode_queue_.clear();
+            }
+            background_task_->WaitForCompletion();
+            delete background_task_;
+            background_task_ = nullptr;
+            vTaskDelay(pdMS_TO_TICKS(1000));
+
+            ota_.StartUpgrade([display](int progress, size_t speed) {
+                char buffer[64];
+                snprintf(buffer, sizeof(buffer), "%d%% %zuKB/s", progress, speed / 1024);
+                display->SetStatus(buffer);
+            });
+
+            // If upgrade success, the device will reboot and never reach here
+            display->SetStatus("更新失败");
+            ESP_LOGI(TAG, "Firmware upgrade failed...");
+            vTaskDelay(pdMS_TO_TICKS(3000));
+            esp_restart();
+        });
+    }else{
+        Alert("Info", "当前固件已是最新版本");
+    }
+    return false;
 }
 
 void Application::Alert(const std::string& title, const std::string& message) {

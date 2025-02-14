@@ -61,7 +61,9 @@ public:
     void StartListening();
     void StopListening();
     void UpdateIotStates();
-
+    Ota& getOta() { return ota_; }
+    bool UpdateNewVersion();
+ 
 private:
     Application();
     ~Application();
