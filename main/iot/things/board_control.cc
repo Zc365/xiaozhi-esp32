@@ -5,6 +5,7 @@
 #include "freertos/timers.h"
 #include "freertos/task.h"
 #include <esp_log.h>
+#include "application.h"
 #define TAG "BoardControl"
 
 namespace iot {
@@ -12,6 +13,19 @@ namespace iot {
 class BoardControl : public Thing {
 private:
     TimerHandle_t sleep_timer_;  // 添加定时器句柄
+
+    // 新增固件版本属性获取方法
+    std::string GetFirmwareVersion() const {
+        return Application::GetInstance().getOta().GetFirmwareVersion();
+    }
+
+    std::string GetCurrentVersion() const {
+        return Application::GetInstance().getOta().GetCurrentVersion();
+    }
+
+    bool HasNewVersion() const {
+        return Application::GetInstance().getOta().HasNewVersion();
+    }
 
     // 添加定时器回调函数
     static void SleepTimerCallback(TimerHandle_t xTimer) {
@@ -42,6 +56,16 @@ public:
             return charging;
         });
 
+        // 添加固件版本属性
+        properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
+            [this]() -> std::string { return GetFirmwareVersion(); });
+
+        properties_.AddStringProperty("CurrentVersion", "当前固件版本",
+            [this]() -> std::string { return GetCurrentVersion(); });
+
+        properties_.AddBooleanProperty("HasNewVersion", "是否有新固件版本",
+            [this]() -> bool { return HasNewVersion(); });
+
         // 修改休眠方法
         methods_.AddMethod("Sleep", "进入关机/休眠状态", ParameterList(), 
             [this](const ParameterList& parameters) {
@@ -58,6 +82,12 @@ public:
                 if (board && board->GetBoardType() == "wifi") {
                     board->ResetWifiConfiguration();
                 }
+            });
+
+        // 修改固件更新方法添加返回值
+        methods_.AddMethod("UpdateFirmware", "立即更新固件", ParameterList(),
+            [this](const ParameterList& parameters) -> bool {
+                return Application::GetInstance().UpdateNewVersion();
             });
     }
     
