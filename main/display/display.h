@@ -26,7 +26,7 @@ public:
     virtual void SetIcon(const char* icon);
     virtual void SetBacklight(uint8_t brightness);
     virtual void SetLogo(const std::string &logo);
-    virtual std::string DisplayType() const = 0;
+    virtual std::string getDisplayType() const = 0;
 
     inline int width() const { return width_; }
     inline int height() const { return height_; }
