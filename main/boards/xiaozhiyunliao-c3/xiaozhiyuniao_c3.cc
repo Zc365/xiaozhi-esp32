@@ -16,7 +16,7 @@
 #include "settings.h"
 #include "esp_sleep.h"
 #include "font_awesome_symbols.h"
-#include <string.h>  // 添加字符串处理头文件
+#include <string.h> 
 #include "xiaoziyunliao_display.h"
 
 #if CONFIG_LCD_CONTROLLER_ILI9341

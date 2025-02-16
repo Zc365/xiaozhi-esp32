@@ -7,6 +7,7 @@
 #include <vector>
 #include <esp_lvgl_port.h>
 #include "board.h"
+#include <string.h> 
 
 #define TAG "LcdDisplay"
 #define LCD_LEDC_CH LEDC_CHANNEL_0
@@ -160,7 +161,16 @@ void XiaoziyunliaoDisplay::SetupUI() {
 
     lv_obj_add_flag(config_container_, LV_OBJ_FLAG_HIDDEN);
 
-    // 对话区
+    // 创建控制台二维码
+    console_qrcode_ = lv_qrcode_create(content_);
+    lv_qrcode_set_size(console_qrcode_, 120);
+    lv_qrcode_set_dark_color(console_qrcode_, lv_color_black());
+    lv_qrcode_set_light_color(console_qrcode_, lv_color_white());
+    lv_qrcode_update(console_qrcode_, "https://xiaozhi.me/console/devices", strlen("https://xiaozhi.me/console/devices"));
+    lv_obj_center(console_qrcode_);
+    lv_obj_add_flag(console_qrcode_, LV_OBJ_FLAG_HIDDEN);
+
+    // 原有的emotion_label_创建
     emotion_label_ = lv_label_create(content_);
     lv_obj_set_style_text_font(emotion_label_, &font_awesome_30_4, 0);
     lv_label_set_text(emotion_label_, FONT_AWESOME_AI_CHIP);
@@ -173,11 +183,21 @@ void XiaoziyunliaoDisplay::SetupUI() {
 }
 
 void XiaoziyunliaoDisplay::SetChatMessage(const std::string &role, const std::string &content) {
+    DisplayLockGuard lock(this);
     LcdDisplay::SetChatMessage(role, content);
+    
+    // 新增条件判断
+    if (content.find("请登录到控制面板添加设备") == 0) {
+        lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(console_qrcode_, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 void XiaoziyunliaoDisplay::SetEmotion(const std::string &emotion) {
+    DisplayLockGuard lock(this); 
     LcdDisplay::SetEmotion(emotion);
+    lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(console_qrcode_, LV_OBJ_FLAG_HIDDEN);
 }
 
 void XiaoziyunliaoDisplay::SetIcon(const char* icon) {

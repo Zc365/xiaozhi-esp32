@@ -61,7 +61,7 @@ SpiLcdDisplay::SpiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_h
         .panel_handle = panel_,
         .control_handle = nullptr,
         .buffer_size = static_cast<uint32_t>(width_ * 10),
-        .double_buffer = false,
+        .double_buffer = true,
         .trans_size = 0,
         .hres = static_cast<uint32_t>(width_),
         .vres = static_cast<uint32_t>(height_),
@@ -220,6 +220,9 @@ LcdDisplay::~LcdDisplay() {
     if (smartconfig_qrcode_ != nullptr) {
         lv_obj_del(smartconfig_qrcode_);
     }
+    if (console_qrcode_ != nullptr) {
+        lv_obj_del(console_qrcode_);
+    }
 }
 
 void LcdDisplay::InitializeBacklight(gpio_num_t backlight_pin) {
@@ -318,6 +321,26 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_size(status_bar_, LV_HOR_RES, fonts_.text_font->line_height);
     lv_obj_set_style_radius(status_bar_, 0, 0);
     
+    /* Content */
+    content_ = lv_obj_create(container_);
+    lv_obj_set_scrollbar_mode(content_, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_radius(content_, 0, 0);
+    lv_obj_set_width(content_, LV_HOR_RES);
+    lv_obj_set_flex_grow(content_, 1);
+
+    lv_obj_set_flex_flow(content_, LV_FLEX_FLOW_COLUMN); // 垂直布局（从上到下）
+    lv_obj_set_flex_align(content_, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY); // 子对象居中对齐，等距分布
+
+    emotion_label_ = lv_label_create(content_);
+    lv_obj_set_style_text_font(emotion_label_, &font_awesome_30_4, 0);
+    lv_label_set_text(emotion_label_, FONT_AWESOME_AI_CHIP);
+
+    chat_message_label_ = lv_label_create(content_);
+    lv_label_set_text(chat_message_label_, "");
+    lv_obj_set_width(chat_message_label_, LV_HOR_RES * 0.9); // 限制宽度为屏幕宽度的 90%
+    lv_label_set_long_mode(chat_message_label_, LV_LABEL_LONG_WRAP); // 设置为自动换行模式
+    lv_obj_set_style_text_align(chat_message_label_, LV_TEXT_ALIGN_CENTER, 0); // 设置文本居中对齐
+    
     /* Status bar */
     lv_obj_set_flex_flow(status_bar_, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_all(status_bar_, 0, 0);
@@ -345,70 +368,9 @@ void LcdDisplay::SetupUI() {
     lv_label_set_text(mute_label_, "");
     lv_obj_set_style_text_font(mute_label_, fonts_.icon_font, 0);
 
-
     battery_label_ = lv_label_create(status_bar_);
     lv_label_set_text(battery_label_, "");
     lv_obj_set_style_text_font(battery_label_, fonts_.icon_font, 0);
-
-    /* Content */
-    content_ = lv_obj_create(container_);
-    lv_obj_set_scrollbar_mode(content_, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_set_style_radius(content_, 0, 0);
-    lv_obj_set_width(content_, LV_HOR_RES);
-    lv_obj_set_flex_grow(content_, 1);
-    
-    lv_obj_set_flex_flow(content_, LV_FLEX_FLOW_COLUMN); // 垂直布局（从上到下）
-    lv_obj_set_flex_align(content_, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY); // 子对象居中对齐，等距分布
-
-    // 创建配置页面
-    config_container_ = lv_obj_create(content_);
-    lv_obj_remove_style_all(config_container_); // 清除默认样式
-    lv_obj_set_size(config_container_, LV_HOR_RES, LV_VER_RES);
-    lv_obj_set_flex_flow(config_container_, LV_FLEX_FLOW_ROW);
-    lv_obj_set_style_pad_all(config_container_, 10, 0); // 整体边距
-    lv_obj_set_style_pad_top(config_container_, 25, 0);  //顶部外边距加20像素
-    lv_obj_set_style_flex_main_place(config_container_, LV_FLEX_ALIGN_CENTER, 0); // 主轴居中
-    lv_obj_set_style_flex_cross_place(config_container_, LV_FLEX_ALIGN_CENTER, 0); // 交叉轴居中
-
-    // 左侧文本说明区
-    config_text_panel_ = lv_label_create(config_container_);
-    lv_obj_set_width(config_text_panel_, LV_HOR_RES - 150 - 20);
-    lv_label_set_text(config_text_panel_,"");
-    lv_obj_set_style_text_font(config_text_panel_, fonts_.text_font, 0);
-    lv_obj_set_style_text_line_space(config_text_panel_, 5, 0);
-    lv_label_set_long_mode(config_text_panel_, LV_LABEL_LONG_WRAP);
-
-    // 右侧二维码区
-    lv_obj_t* right_container = lv_obj_create(config_container_);
-    lv_obj_remove_style_all(right_container); // 清除默认样式
-    lv_obj_set_size(right_container, 140, LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(right_container, LV_FLEX_FLOW_COLUMN); // 垂直布局
-    lv_obj_set_style_pad_gap(right_container, 5, 0); // 元素间距5像素
-    lv_obj_set_style_flex_main_place(right_container, LV_FLEX_ALIGN_CENTER, 0); // 主轴居中
-
-    qrcode_label_ = lv_label_create(right_container);
-    lv_label_set_text(qrcode_label_, "");
-    lv_obj_set_style_text_font(qrcode_label_, fonts_.text_font, 0);
-    lv_obj_set_style_text_line_space(qrcode_label_, 2, 0);
-    lv_obj_set_style_text_align(qrcode_label_, LV_TEXT_ALIGN_CENTER, 0);
-
-    config_qrcode_panel_ = lv_qrcode_create(right_container);
-    lv_qrcode_set_size(config_qrcode_panel_, 120);
-    lv_qrcode_set_dark_color(config_qrcode_panel_, lv_color_black());
-    lv_qrcode_set_light_color(config_qrcode_panel_, lv_color_white());
-
-    lv_obj_add_flag(config_container_, LV_OBJ_FLAG_HIDDEN);
-
-    // 对话区
-    emotion_label_ = lv_label_create(content_);
-    lv_obj_set_style_text_font(emotion_label_, &font_awesome_30_4, 0);
-    lv_label_set_text(emotion_label_, FONT_AWESOME_AI_CHIP);
-
-    chat_message_label_ = lv_label_create(content_);
-    lv_label_set_text(chat_message_label_, "");
-    lv_obj_set_width(chat_message_label_, LV_HOR_RES * 0.9); // 限制宽度为屏幕宽度的 90%
-    lv_label_set_long_mode(chat_message_label_, LV_LABEL_LONG_WRAP); // 设置为自动换行模式
-    lv_obj_set_style_text_align(chat_message_label_, LV_TEXT_ALIGN_CENTER, 0); // 设置文本居中对齐
 }
 
 void LcdDisplay::SetEmotion(const char* emotion) {
