@@ -196,7 +196,7 @@ void XiaoziyunliaoDisplay::SetChatMessage(const std::string &role, const std::st
     LcdDisplay::SetChatMessage(role, content);
     
     // 新增条件判断
-    if (content.find("请登录到控制面板添加设备") == 0) {
+    if (content.find("请登录到控制面板添加设备") == 0 && lv_page_index == PageIndex::PAGE_CHAT) {
         lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(qr_container, LV_OBJ_FLAG_HIDDEN);
     }

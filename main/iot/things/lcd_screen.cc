@@ -16,7 +16,7 @@ public:
         // 定义亮度属性
         properties_.AddNumberProperty("brightness", "当前屏幕背光亮度百分比", [this]() -> int {
             auto display = Board::GetInstance().GetDisplay();
-            if (display && display->DisplayType() == "LCD") {
+            if (display && display->getDisplayType() == "LCD") {
                 auto lcd_display = static_cast<LcdDisplay*>(display);
                 ESP_LOGD(TAG, "当前背光亮度: %d%%", lcd_display->backlight());
                 return lcd_display->backlight();
@@ -29,7 +29,7 @@ public:
             Parameter("brightness", "0到100之间的整数", kValueTypeNumber, true)
         }), [this](const ParameterList& parameters) {
             auto display = Board::GetInstance().GetDisplay();
-            if (display && display->DisplayType() == "LCD") {
+            if (display && display->getDisplayType() == "LCD") {
                 auto lcd_display = static_cast<LcdDisplay*>(display);
                 lcd_display->SetBacklight(static_cast<uint8_t>(parameters["brightness"].number()));
             }
@@ -37,7 +37,7 @@ public:
         // 定义切换帮助页面方法
         methods_.AddMethod("ShowHelpPage", "显示帮助/配置页面", ParameterList(), [this](const ParameterList& parameters) {
             auto display = Board::GetInstance().GetDisplay();
-            if (display && display->DisplayType() == "LCD") {
+            if (display && display->getDisplayType() == "LCD") {
                 auto lcd_display = static_cast<LcdDisplay*>(display);
                 lcd_display->lv_config_page();
             }
@@ -45,7 +45,7 @@ public:
         // 定义切换聊天页面方法
         methods_.AddMethod("ShowChatPage", "显示聊天页面", ParameterList(), [this](const ParameterList& parameters) {
             auto display = Board::GetInstance().GetDisplay();
-            if (display && display->DisplayType() == "LCD") {
+            if (display && display->getDisplayType() == "LCD") {
                 auto lcd_display = static_cast<LcdDisplay*>(display);
                 lcd_display->lv_chat_page();
             }
