@@ -161,14 +161,23 @@ void XiaoziyunliaoDisplay::SetupUI() {
 
     lv_obj_add_flag(config_container_, LV_OBJ_FLAG_HIDDEN);
 
+    // 创建带边框的二维码容器
+    qr_container = lv_obj_create(content_);
+    lv_obj_remove_style_all(qr_container);
+    lv_obj_set_size(qr_container, 126, 126);
+    lv_obj_set_style_border_color(qr_container, lv_color_white(), 0);
+    lv_obj_set_style_border_width(qr_container, 3, 0);
+    lv_obj_set_style_bg_color(qr_container, lv_color_black(), 0);
+    lv_obj_set_style_pad_all(qr_container, 0, 0);
+
     // 创建控制台二维码
-    console_qrcode_ = lv_qrcode_create(content_);
+    console_qrcode_ = lv_qrcode_create(qr_container);
     lv_qrcode_set_size(console_qrcode_, 120);
     lv_qrcode_set_dark_color(console_qrcode_, lv_color_black());
     lv_qrcode_set_light_color(console_qrcode_, lv_color_white());
     lv_qrcode_update(console_qrcode_, "https://xiaozhi.me/console/devices", strlen("https://xiaozhi.me/console/devices"));
     lv_obj_center(console_qrcode_);
-    lv_obj_add_flag(console_qrcode_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(qr_container, LV_OBJ_FLAG_HIDDEN);
 
     // 原有的emotion_label_创建
     emotion_label_ = lv_label_create(content_);
@@ -189,15 +198,18 @@ void XiaoziyunliaoDisplay::SetChatMessage(const std::string &role, const std::st
     // 新增条件判断
     if (content.find("请登录到控制面板添加设备") == 0) {
         lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(console_qrcode_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(qr_container, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
 void XiaoziyunliaoDisplay::SetEmotion(const std::string &emotion) {
     DisplayLockGuard lock(this); 
     LcdDisplay::SetEmotion(emotion);
-    lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(console_qrcode_, LV_OBJ_FLAG_HIDDEN);
+    // 只有当qr_container显示时才切换
+    if (!lv_obj_has_flag(qr_container, LV_OBJ_FLAG_HIDDEN)) {
+        lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(qr_container, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 void XiaoziyunliaoDisplay::SetIcon(const char* icon) {

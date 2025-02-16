@@ -38,6 +38,7 @@ protected:
     lv_obj_t* config_qrcode_panel_ = nullptr;
     lv_obj_t* qrcode_label_ = nullptr;
     lv_obj_t* smartconfig_qrcode_ = nullptr;
+    lv_obj_t* qr_container = nullptr;
     lv_obj_t* console_qrcode_ = nullptr;
 
     DisplayFonts fonts_;
