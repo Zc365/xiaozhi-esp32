@@ -117,7 +117,7 @@ void XiaoziyunliaoDisplay::SetupUI() {
     lv_obj_set_size(config_container_, LV_HOR_RES, LV_VER_RES);
     lv_obj_set_flex_flow(config_container_, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_all(config_container_, 10, 0); // 整体边距
-    lv_obj_set_style_pad_top(config_container_, 20, 0);  //顶部外边距20像素
+    lv_obj_set_style_pad_top(config_container_, 23, 0);  //顶部外边距23像素
     lv_obj_set_style_flex_main_place(config_container_, LV_FLEX_ALIGN_CENTER, 0); // 主轴居中
     lv_obj_set_style_flex_cross_place(config_container_, LV_FLEX_ALIGN_CENTER, 0); // 交叉轴居中
 
