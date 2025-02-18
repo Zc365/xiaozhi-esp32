@@ -117,7 +117,7 @@ void XiaoziyunliaoDisplay::SetupUI() {
     lv_obj_set_size(config_container_, LV_HOR_RES, LV_VER_RES);
     lv_obj_set_flex_flow(config_container_, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_all(config_container_, 10, 0); // 整体边距
-    lv_obj_set_style_pad_top(config_container_, 25, 0);  //顶部外边距加20像素
+    lv_obj_set_style_pad_top(config_container_, 20, 0);  //顶部外边距20像素
     lv_obj_set_style_flex_main_place(config_container_, LV_FLEX_ALIGN_CENTER, 0); // 主轴居中
     lv_obj_set_style_flex_cross_place(config_container_, LV_FLEX_ALIGN_CENTER, 0); // 交叉轴居中
 
@@ -126,22 +126,24 @@ void XiaoziyunliaoDisplay::SetupUI() {
     lv_obj_set_width(config_text_panel_, LV_HOR_RES - 150 - 20);
     lv_label_set_text(config_text_panel_,"");
     lv_obj_set_style_text_font(config_text_panel_, fonts_.text_font, 0);
-    lv_obj_set_style_text_line_space(config_text_panel_, 5, 0);
+    // lv_obj_set_style_text_line_space(config_text_panel_, 1, 0);
     lv_label_set_long_mode(config_text_panel_, LV_LABEL_LONG_WRAP);
 
-    // 右侧二维码区
+    /* 右侧二维码区 */
     lv_obj_t* right_container = lv_obj_create(config_container_);
     lv_obj_remove_style_all(right_container); // 清除默认样式
     lv_obj_set_size(right_container, 140, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(right_container, LV_FLEX_FLOW_COLUMN); // 垂直布局
     lv_obj_set_style_pad_gap(right_container, 5, 0); // 元素间距5像素
     lv_obj_set_style_flex_main_place(right_container, LV_FLEX_ALIGN_CENTER, 0); // 主轴居中
+    lv_obj_set_style_flex_cross_place(right_container, LV_FLEX_ALIGN_CENTER, 0); // 交叉轴居中
 
     qrcode_label_ = lv_label_create(right_container);
     lv_label_set_text(qrcode_label_, "");
     lv_obj_set_style_text_font(qrcode_label_, fonts_.text_font, 0);
     lv_obj_set_style_text_line_space(qrcode_label_, 2, 0);
     lv_obj_set_style_text_align(qrcode_label_, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_width(qrcode_label_, LV_PCT(100)); // 新增：设置标签宽度为父容器100%
 
     // 创建带边框的容器
     lv_obj_t* border_container = lv_obj_create(right_container);
