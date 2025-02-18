@@ -23,14 +23,14 @@
     #include "esp_lcd_ili9341.h"
     #include <driver/spi_common.h>
     #include "display/lcd_display.h"
-    LV_FONT_DECLARE(font_puhui_16_4);
-    LV_FONT_DECLARE(font_awesome_16_4);
+    LV_FONT_DECLARE(font_puhui_20_4);
+    LV_FONT_DECLARE(font_awesome_20_4);
 #elif CONFIG_LCD_CONTROLLER_ST7789
     #include <esp_lcd_panel_vendor.h>
     #include <driver/spi_common.h>
     #include "display/lcd_display.h"
-    LV_FONT_DECLARE(font_puhui_16_4);
-    LV_FONT_DECLARE(font_awesome_16_4);
+    LV_FONT_DECLARE(font_puhui_20_4);
+    LV_FONT_DECLARE(font_awesome_20_4);
 #endif
 
 #define TAG "XiaoZhiYunliaoC3"
@@ -163,8 +163,8 @@ private:
             DISPLAY_MIRROR_Y, 
             DISPLAY_SWAP_XY, 
             {                
-                .text_font = &font_puhui_16_4,
-                .icon_font = &font_awesome_16_4,
+                .text_font = &font_puhui_20_4,
+                .icon_font = &font_awesome_20_4,
                 .emoji_font = font_emoji_64_init(),
             });
         display_->SetupUI();
@@ -179,7 +179,7 @@ private:
                     "  调整亮度\n"
                     "  调整音量\n"
                     "  重新配网",  // 左侧说明文本
-                "扫码访问管理后台",    // 二维码上方说明文字
+                "扫码访问\n管理后台",    // 二维码上方说明文字
                 "https://xiaozhi.me/"// 二维码实际内容
         );
         display_->SetChatMessage("user", "长按按键开始对话\n双击按键进入帮助");
