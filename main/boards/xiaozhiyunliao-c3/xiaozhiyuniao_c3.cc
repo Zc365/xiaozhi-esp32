@@ -39,7 +39,7 @@ RTC_DATA_ATTR int bootCNT;
 esp_lcd_panel_handle_t panel = nullptr;
 static QueueHandle_t gpio_evt_queue = NULL;
 uint16_t battCnt;//闪灯次数
-uint16_t battLife; //电量
+uint16_t battLife = 100; //电量
 
 // 中断服务程序
 static void IRAM_ATTR batt_mon_isr_handler(void* arg) {

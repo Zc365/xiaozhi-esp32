@@ -206,7 +206,7 @@ void XiaoziyunliaoDisplay::SetEmotion(const std::string &emotion) {
     DisplayLockGuard lock(this); 
     LcdDisplay::SetEmotion(emotion);
     // 只有当qr_container显示时才切换
-    if (!lv_obj_has_flag(qr_container, LV_OBJ_FLAG_HIDDEN)) {
+    if (lv_page_index == PageIndex::PAGE_CHAT && !lv_obj_has_flag(qr_container, LV_OBJ_FLAG_HIDDEN)) {
         lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(qr_container, LV_OBJ_FLAG_HIDDEN);
     }
