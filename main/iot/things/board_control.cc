@@ -6,6 +6,8 @@
 #include "freertos/task.h"
 #include <esp_log.h>
 #include "application.h"
+#include "esp_system.h"
+#include "system_info.h"
 #define TAG "BoardControl"
 
 namespace iot {
@@ -13,6 +15,8 @@ namespace iot {
 class BoardControl : public Thing {
 private:
     TimerHandle_t sleep_timer_;  // 添加定时器句柄
+    enum class TimerMode { SLEEP, RESTART };  // 新增定时模式枚举
+    TimerMode timer_mode_;  // 添加定时模式状态
 
     // 新增固件版本属性获取方法
     std::string GetFirmwareVersion() const {
@@ -27,15 +31,21 @@ private:
         return Application::GetInstance().getOta().HasNewVersion();
     }
 
-    // 添加定时器回调函数
+    // 定时器回调函数
     static void SleepTimerCallback(TimerHandle_t xTimer) {
-        ESP_LOGI(TAG, "System entering sleep mode after delay");
-        Board::GetInstance().Sleep();
+        BoardControl* instance = static_cast<BoardControl*>(pvTimerGetTimerID(xTimer));
+        if (instance->timer_mode_ == TimerMode::SLEEP) {
+            ESP_LOGI(TAG, "System entering sleep mode after delay");
+            Board::GetInstance().Sleep();
+        } else {
+            ESP_LOGI(TAG, "System restarting after delay");
+            esp_restart();  // 添加重启逻辑
+        }
     }
 
 public:
     BoardControl() : Thing("BoardControl", "当前 AI 机器人管理和控制") {
-        // 创建单次定时器
+        // 创建定时器时传递this指针作为ID
         sleep_timer_ = xTimerCreate("SleepTimer", pdMS_TO_TICKS(5000), pdFALSE, this, SleepTimerCallback);
         
         // 添加电池电量属性
@@ -56,7 +66,6 @@ public:
             return charging;
         });
 
-        // 添加固件版本属性
         properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
             [this]() -> std::string { return GetFirmwareVersion(); });
 
@@ -66,14 +75,38 @@ public:
         properties_.AddBooleanProperty("HasNewVersion", "是否有新固件版本",
             [this]() -> bool { return HasNewVersion(); });
 
+        properties_.AddStringProperty("MACAddress", "设备MAC地址",
+            []() -> std::string { return SystemInfo::GetMacAddress(); });
+
+        properties_.AddNumberProperty("FlashSize", "闪存容量(MB)",
+            []() -> int { return SystemInfo::GetFlashSize() / 1024 / 1024; });
+
+        properties_.AddStringProperty("ChipModel", "芯片型号",
+            []() -> std::string { return SystemInfo::GetChipModelName(); });
+
+        properties_.AddNumberProperty("FreeHeap", "可用内存(bytes)",
+            []() -> int { return SystemInfo::GetFreeHeapSize(); });
+
         // 修改休眠方法
-        methods_.AddMethod("Sleep", "进入关机/休眠状态", ParameterList(), 
+        methods_.AddMethod("Sleep", "延迟5秒后进入关机/休眠状态", ParameterList(), 
             [this](const ParameterList& parameters) {
                 ESP_LOGI(TAG, "Delaying sleep for 5 seconds");
                 if (sleep_timer_ != NULL) {
-                    xTimerStart(sleep_timer_, 0);  // 启动定时器
+                    timer_mode_ = TimerMode::SLEEP;  // 设置模式为休眠
+                    xTimerStart(sleep_timer_, 0);
                 }
             });
+
+        // 重启方法
+        methods_.AddMethod("Restart", "延迟5秒后重启设备", ParameterList(),
+            [this](const ParameterList& parameters) {
+                ESP_LOGI(TAG, "Delaying restart for 5 seconds");
+                if (sleep_timer_ != NULL) {
+                    timer_mode_ = TimerMode::RESTART;  // 设置模式为重启
+                    xTimerStart(sleep_timer_, 0);
+                }
+            });
+
         // 修改重新配网
         methods_.AddMethod("ResetWifiConfiguration", "重新配网", ParameterList(), 
             [this](const ParameterList& parameters) {
@@ -84,11 +117,12 @@ public:
                 }
             });
 
-        // 修改固件更新方法添加返回值
+        // 固件更新方法
         methods_.AddMethod("UpdateFirmware", "立即更新固件", ParameterList(),
             [this](const ParameterList& parameters) -> bool {
                 return Application::GetInstance().UpdateNewVersion();
             });
+
     }
     
     // 添加析构函数释放定时器资源
