@@ -172,8 +172,8 @@ private:
         display_->SetLogo("小智云聊");
         display_->SetConfigPage(
                    "按键功能:\n"
-                    "  长按通话\n"
                     "  双击切换页面\n"
+                    "  戳小孔重启\n"
                     "语音指令集:\n"
                     "  关机/重启\n"
                     "  调整亮度\n"

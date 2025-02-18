@@ -14,11 +14,11 @@ namespace iot {
 
 class BoardControl : public Thing {
 private:
-    TimerHandle_t sleep_timer_;  // 添加定时器句柄
-    enum class TimerMode { SLEEP, RESTART };  // 新增定时模式枚举
-    TimerMode timer_mode_;  // 添加定时模式状态
+    TimerHandle_t sleep_timer_;
+    enum class TimerMode { SLEEP, RESTART }; 
+    TimerMode timer_mode_; 
 
-    // 新增固件版本属性获取方法
+    // 固件版本属性获取方法
     std::string GetFirmwareVersion() const {
         return Application::GetInstance().getOta().GetFirmwareVersion();
     }
@@ -44,7 +44,7 @@ private:
     }
 
 public:
-    BoardControl() : Thing("BoardControl", "当前 AI 机器人管理和控制") {
+    BoardControl() : Thing("BoardControl", "当前 AI 机器人管理和控制"), timer_mode_(TimerMode::SLEEP) {
         // 创建定时器时传递this指针作为ID
         sleep_timer_ = xTimerCreate("SleepTimer", pdMS_TO_TICKS(5000), pdFALSE, this, SleepTimerCallback);
         
