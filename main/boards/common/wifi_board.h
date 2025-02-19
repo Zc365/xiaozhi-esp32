@@ -8,7 +8,7 @@ protected:
     bool wifi_config_mode_ = false;
 
     WifiBoard();
-    void EnterWifiConfigMode();
+    virtual void EnterWifiConfigMode();
     virtual std::string GetBoardJson() override;
 
 public:
