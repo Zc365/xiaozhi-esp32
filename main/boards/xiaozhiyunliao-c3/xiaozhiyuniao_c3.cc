@@ -18,6 +18,9 @@
 #include "font_awesome_symbols.h"
 #include <string.h> 
 #include "xiaoziyunliao_display.h"
+#include <wifi_configuration_ap.h>
+
+#define WIFI_SMARTCONFIG_URL	"https://iot.espressif.cn/configWXDeviceWiFi.html"
 
 #if CONFIG_LCD_CONTROLLER_ILI9341
     #include "esp_lcd_ili9341.h"
@@ -235,7 +238,7 @@ private:
             // ESP_LOGI(TAG, "Button LongPress");
             if (wifi_config_mode_) {
                 StopNetwork();
-                vTaskDelay(pdMS_TO_TICKS(1000));
+                vTaskDelay(pdMS_TO_TICKS(2000));
                 Sleep();
             }
         });    
@@ -349,6 +352,38 @@ public:
         gpio_set_direction(GPIO_NUM_1, GPIO_MODE_INPUT);
         esp_deep_sleep_start();
     }
-};
 
+    virtual void EnterWifiConfigMode() override {
+        auto& application = Application::GetInstance();
+        auto display = Board::GetInstance().GetDisplay();
+        application.SetDeviceState(kDeviceStateWifiConfiguring);
+
+        auto& wifi_ap = WifiConfigurationAp::GetInstance();
+        wifi_ap.SetSsidPrefix("Xiaozhi");
+        wifi_ap.Start();
+
+        // 显示 WiFi 配置 AP 的 SSID 和 Web 服务器 URL
+        std::string hint = "微信直接扫二维码配网，或在手机上连接热点 ";
+        hint += wifi_ap.GetSsid();
+        hint += "，然后打开浏览器访问 ";
+        hint += wifi_ap.GetWebServerUrl();
+        hint += "(长按1秒关机)";
+
+        display->SetStatus(hint);
+
+        // 显示微信配网二维码
+        static_cast<LcdDisplay*>(display)->lv_smartconfig_page(WIFI_SMARTCONFIG_URL);
+        
+        // 播报配置 WiFi 的提示
+        application.Alert("Info", "进入配网模式");
+        
+        // Wait forever until reset after configuration
+        while (true) {
+            int free_sram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+            int min_free_sram = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
+            ESP_LOGI(TAG, "Free internal: %u minimal internal: %u", free_sram, min_free_sram);
+            vTaskDelay(pdMS_TO_TICKS(10000));
+        }
+    }
+};
 DECLARE_BOARD(XiaoZhiYunliaoC3);
