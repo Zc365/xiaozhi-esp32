@@ -15,6 +15,11 @@
 #include <atomic>
 
 class LcdDisplay : public Display {
+public:
+    enum class PageIndex {
+        PAGE_CHAT = 0,
+        PAGE_CONFIG = 1
+    };
 protected:
     esp_lcd_panel_io_handle_t panel_io_ = nullptr;
     esp_lcd_panel_handle_t panel_ = nullptr;
