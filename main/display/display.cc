@@ -64,7 +64,6 @@ Display::~Display() {
         lv_obj_del(mute_label_);
         lv_obj_del(battery_label_);
         lv_obj_del(emotion_label_);
-        lv_obj_del(logo_label_);
     }
 }
 
