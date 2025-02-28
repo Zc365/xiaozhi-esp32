@@ -152,7 +152,7 @@ void Application::CheckNewVersion() {
         }
 
         SetDeviceState(kDeviceStateIdle);
-        display->SetChatMessage("system", "");
+        // display->SetChatMessage("system", "");
 
         // Exit the loop if upgrade or idle
         break;

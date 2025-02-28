@@ -63,10 +63,9 @@ public:
     void StartListening();
     void StopListening();
     void UpdateIotStates();
-    Ota& getOta() { return ota_; }
-    bool UpdateNewVersion();
-     void Reboot();
+    void Reboot();
     void WakeWordInvoke(const std::string& wake_word);
+    Ota& getOta() { return ota_; }
 
 private:
     Application();

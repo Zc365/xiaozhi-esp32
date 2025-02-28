@@ -1,5 +1,5 @@
 #include "board.h"
-#include "boards/common/wifi_board.h"
+#include "xiaozhiyunliao_c3.h"
 #include "iot/thing.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
@@ -8,6 +8,8 @@
 #include "application.h"
 #include "esp_system.h"
 #include "system_info.h"
+#include <wifi_station.h>
+
 #define TAG "BoardControl"
 
 namespace iot {
@@ -18,7 +20,6 @@ private:
     enum class TimerMode { SLEEP, RESTART }; 
     TimerMode timer_mode_; 
 
-    // 固件版本属性获取方法
     std::string GetFirmwareVersion() const {
         return Application::GetInstance().getOta().GetFirmwareVersion();
     }
@@ -31,24 +32,33 @@ private:
         return Application::GetInstance().getOta().HasNewVersion();
     }
 
-    // 定时器回调函数
     static void SleepTimerCallback(TimerHandle_t xTimer) {
         BoardControl* instance = static_cast<BoardControl*>(pvTimerGetTimerID(xTimer));
         if (instance->timer_mode_ == TimerMode::SLEEP) {
             ESP_LOGI(TAG, "System entering sleep mode after delay");
-            Board::GetInstance().Sleep();
+            auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+            board->Sleep();
         } else {
             ESP_LOGI(TAG, "System restarting after delay");
-            esp_restart();  // 添加重启逻辑
+            esp_restart();
         }
     }
 
 public:
     BoardControl() : Thing("BoardControl", "当前 AI 机器人管理和控制"), timer_mode_(TimerMode::SLEEP) {
-        // 创建定时器时传递this指针作为ID
+
         sleep_timer_ = xTimerCreate("SleepTimer", pdMS_TO_TICKS(5000), pdFALSE, this, SleepTimerCallback);
+
+        // 添加网络信号质量
+        properties_.AddNumberProperty("NetworkQuality", "当前网络信号质量", [this]() -> int {
+            auto& wifi_station = WifiStation::GetInstance();
+            if (wifi_station.IsConnected()) {
+                return wifi_station.GetRssi();
+            }else{
+                return 0;
+            }
+        });
         
-        // 添加电池电量属性
         properties_.AddNumberProperty("BatteryLevel", "当前电池电量百分比", [this]() -> int {
             int level = 0;
             bool charging = false;
@@ -57,7 +67,6 @@ public:
             return level;
         });
 
-        // 添加充电状态属性
         properties_.AddBooleanProperty("Charging", "是否正在充电", [this]() -> bool {
             int level = 0;
             bool charging = false;
@@ -87,8 +96,20 @@ public:
         properties_.AddNumberProperty("FreeHeap", "可用内存(bytes)",
             []() -> int { return SystemInfo::GetFreeHeapSize(); });
 
-        // 修改休眠方法
-        methods_.AddMethod("Sleep", "延迟5秒后进入关机/休眠状态", ParameterList(), 
+        properties_.AddBooleanProperty("enabled", "true 表示长按说话模式，false 表示单击说话模式", []() -> bool {
+            auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+            return board->IsPressToTalkEnabled();
+        });
+
+        methods_.AddMethod("SetEnabled", "启用或禁用长按说话模式，调用前需要经过用户确认", ParameterList({
+            Parameter("enabled", "true 表示长按说话模式，false 表示单击说话模式", kValueTypeBoolean, true)
+        }), [](const ParameterList& parameters) {
+            bool enabled = parameters["enabled"].boolean();
+            auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+            board->SetPressToTalkEnabled(enabled);
+        });
+
+        methods_.AddMethod("Sleep", "延迟5秒后进入关机状态", ParameterList(), 
             [this](const ParameterList& parameters) {
                 ESP_LOGI(TAG, "Delaying sleep for 5 seconds");
                 if (sleep_timer_ != NULL) {
@@ -97,7 +118,6 @@ public:
                 }
             });
 
-        // 重启方法
         methods_.AddMethod("Restart", "延迟5秒后重启设备", ParameterList(),
             [this](const ParameterList& parameters) {
                 ESP_LOGI(TAG, "Delaying restart for 5 seconds");
@@ -107,25 +127,21 @@ public:
                 }
             });
 
-        // 修改重新配网
         methods_.AddMethod("ResetWifiConfiguration", "重新配网", ParameterList(), 
             [this](const ParameterList& parameters) {
                 ESP_LOGI(TAG, "ResetWifiConfiguration");
-                auto board = static_cast<WifiBoard*>(&Board::GetInstance());
-                if (board && board->GetBoardType() == "wifi") {
-                    board->ResetWifiConfiguration();
-                }
+                auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                board->ResetWifiConfiguration();
+              
             });
 
-        // 固件更新方法
-        methods_.AddMethod("UpdateFirmware", "立即更新固件", ParameterList(),
-            [this](const ParameterList& parameters) -> bool {
-                return Application::GetInstance().UpdateNewVersion();
-            });
+        // methods_.AddMethod("UpdateFirmware", "立即更新固件", ParameterList(),
+        //     [this](const ParameterList& parameters) -> bool {
+        //         return Application::GetInstance().UpdateNewVersion();
+        //     });
 
     }
     
-    // 添加析构函数释放定时器资源
     ~BoardControl() {
         if (sleep_timer_ != NULL) {
             xTimerDelete(sleep_timer_, 0);

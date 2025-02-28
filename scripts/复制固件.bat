@@ -1,4 +1,4 @@
 
-copy /Y ..\build\xiaozhi.bin ..\..\..\..\Desktop\ESP\Project\XiaozhiAI\release\v1.1.2_xiaozhiyunliao\yunliao_C3.bin
+copy /Y ..\build\xiaozhi.bin ..\..\..\..\Desktop\ESP\Project\XiaozhiAI\Yunliao\release\v1.3.0_xiaozhiyunliao\yunliao_C3_CN.bin
 
 ping -n 5 localhost >nul

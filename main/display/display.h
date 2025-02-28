@@ -25,8 +25,6 @@ public:
     virtual void SetChatMessage(const char* role, const char* content);
     virtual void SetIcon(const char* icon);
     virtual void SetBacklight(uint8_t brightness);
-    virtual void SetLogo(const std::string &logo);
-    virtual std::string getDisplayType() const = 0;
 
     inline int width() const { return width_; }
     inline int height() const { return height_; }
@@ -46,7 +44,6 @@ protected:
     lv_obj_t *mute_label_ = nullptr;
     lv_obj_t *battery_label_ = nullptr;
     lv_obj_t* chat_message_label_ = nullptr;
-    lv_obj_t *logo_label_ = nullptr;
     const char* battery_icon_ = nullptr;
     const char* network_icon_ = nullptr;
     bool muted_ = false;

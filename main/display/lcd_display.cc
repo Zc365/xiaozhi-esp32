@@ -60,8 +60,8 @@ SpiLcdDisplay::SpiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_h
         .io_handle = panel_io_,
         .panel_handle = panel_,
         .control_handle = nullptr,
-        .buffer_size = static_cast<uint32_t>(width_ * 10),
-        .double_buffer = true,
+        .buffer_size = static_cast<uint32_t>(width_ * 5),
+        .double_buffer = false,
         .trans_size = 0,
         .hres = static_cast<uint32_t>(width_),
         .vres = static_cast<uint32_t>(height_),
@@ -82,7 +82,7 @@ SpiLcdDisplay::SpiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_h
         },
     };
 
-    display_ = lvgl_port_add_disp(&display_cfg);
+    display_ = lvgl_port_add_disp(&display_cfg); 
     if (display_ == nullptr) {
         ESP_LOGE(TAG, "Failed to add display");
         return;
@@ -92,9 +92,9 @@ SpiLcdDisplay::SpiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_h
         lv_display_set_offset(display_, offset_x, offset_y);
     }
 
-    SetupUI();
+    // SetupUI();
 
-    SetBacklight(brightness_);
+    // SetBacklight(brightness_);
 }
 
 // RGB LCD实现
@@ -205,24 +205,6 @@ LcdDisplay::~LcdDisplay() {
     if (panel_io_ != nullptr) {
         esp_lcd_panel_io_del(panel_io_);
     }
-    if (config_container_ != nullptr) {
-        lv_obj_del(config_container_);
-    }
-    if (config_text_panel_ != nullptr) {
-        lv_obj_del(config_text_panel_);
-    }
-    if (config_qrcode_panel_ != nullptr) {
-        lv_obj_del(config_qrcode_panel_);
-    }
-    if (qrcode_label_ != nullptr) {
-        lv_obj_del(qrcode_label_);
-    }
-    if (smartconfig_qrcode_ != nullptr) {
-        lv_obj_del(smartconfig_qrcode_);
-    }
-    if (console_qrcode_ != nullptr) {
-        lv_obj_del(console_qrcode_);
-    }
 }
 
 void LcdDisplay::InitializeBacklight(gpio_num_t backlight_pin) {
@@ -281,7 +263,6 @@ void LcdDisplay::SetBacklight(uint8_t brightness) {
     if (brightness > 100) {
         brightness = 100;
     }
-    backlight_brightness_ = brightness;
 
     ESP_LOGI(TAG, "Setting LCD backlight: %d%%", brightness);
     // 停止现有的定时器（如果正在运行）
@@ -306,7 +287,6 @@ void LcdDisplay::SetupUI() {
     auto screen = lv_screen_active();
     lv_obj_set_style_text_font(screen, fonts_.text_font, 0);
     lv_obj_set_style_text_color(screen, lv_color_black(), 0);
-    
 
     /* Container */
     container_ = lv_obj_create(screen);
@@ -340,7 +320,6 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_width(chat_message_label_, LV_HOR_RES * 0.9); // 限制宽度为屏幕宽度的 90%
     lv_label_set_long_mode(chat_message_label_, LV_LABEL_LONG_WRAP); // 设置为自动换行模式
     lv_obj_set_style_text_align(chat_message_label_, LV_TEXT_ALIGN_CENTER, 0); // 设置文本居中对齐
-    
     /* Status bar */
     lv_obj_set_flex_flow(status_bar_, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_all(status_bar_, 0, 0);
@@ -429,58 +408,4 @@ void LcdDisplay::SetIcon(const char* icon) {
     }
     lv_obj_set_style_text_font(emotion_label_, &font_awesome_30_4, 0);
     lv_label_set_text(emotion_label_, icon);
-}
-void LcdDisplay::lv_chat_page() {
-     // 隐藏配置页面元素
-    lv_obj_add_flag(config_container_, LV_OBJ_FLAG_HIDDEN);
-    lv_page_index = PageIndex::PAGE_CHAT;
-    // 显示表情标签和聊天消息标签
-    lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(chat_message_label_, LV_OBJ_FLAG_HIDDEN);
-}
-
-void LcdDisplay::lv_config_page() {
-    // 隐藏表情标签和聊天消息标签
-    lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(chat_message_label_, LV_OBJ_FLAG_HIDDEN);
-    lv_page_index = PageIndex::PAGE_CONFIG;
-    // 显示配置页面元素
-    lv_obj_clear_flag(config_container_, LV_OBJ_FLAG_HIDDEN);
-}
-
-void LcdDisplay::lv_switch_page() {
-    if (lv_page_index == PageIndex::PAGE_CHAT) {
-        lv_config_page();
-    } else {
-        lv_chat_page();
-    }
-}
-
-void LcdDisplay::SetConfigPage(const std::string& config_text, 
-                              const std::string& qrcode_label_text,
-                              const std::string& qrcode_content) {
-    DisplayLockGuard lock(this);
-    if (config_text_panel_) {
-        lv_label_set_text(config_text_panel_, config_text.c_str());
-    }
-    if (qrcode_label_) {
-        lv_label_set_text(qrcode_label_, qrcode_label_text.c_str());
-    }
-    if (config_qrcode_panel_) {
-        lv_qrcode_update(config_qrcode_panel_, qrcode_content.c_str(), qrcode_content.length());
-    }
-}
-
-void LcdDisplay::lv_smartconfig_page(const std::string& qrcode_content) {
-    DisplayLockGuard lock(this);
-    // 隐藏原页面元素
-    lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(chat_message_label_, LV_OBJ_FLAG_HIDDEN);
-
-    // 创建智能配置二维码
-    smartconfig_qrcode_ = lv_qrcode_create(content_);
-    lv_qrcode_set_size(smartconfig_qrcode_, 120);
-    lv_qrcode_set_dark_color(smartconfig_qrcode_, lv_color_white());
-    lv_qrcode_set_light_color(smartconfig_qrcode_, lv_color_black());
-    lv_qrcode_update(smartconfig_qrcode_, qrcode_content.c_str(), qrcode_content.length());
 }

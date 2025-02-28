@@ -8,7 +8,12 @@
         "INITIALIZING": "Initializing...",
         "DETECTING_MODULE": "Detecting module...",
         "REGISTERING_NETWORK": "Waiting for network...",
-        
+        "LOGO": "YunLiao",
+        "HELP1_1":"Long press to start the conversation",
+        "HELP1_2":"Click to enter ongoing conversation mode",
+        "HELP2":"Double click to enter the help",
+        "HELP3":"Scan QR code",
+        "HELP4":"to console",
         "ERROR": "Error",
         "PIN_ERROR": "Please insert SIM card",
         "REG_ERROR": "Unable to access network, please check SIM card status",
@@ -18,6 +23,8 @@
         "CONNECTING": "Connecting...",
         "CONNECTION_SUCCESSFUL": "Connection Successful",
         "CONNECTED_TO": "Connected to ",
+        "DISCONNECT": "Network disconnected",
+        "SHUTTING_DOWN": "Shutting down...",
 
         "LISTENING": "Listening...",
         "SPEAKING": "Speaking...",
@@ -32,6 +39,8 @@
         "WIFI_CONFIG_MODE": "Wi-Fi Configuration Mode",
         "ENTERING_WIFI_CONFIG_MODE": "Entering Wi-Fi configuration mode...",
         "SCANNING_WIFI": "Scanning Wi-Fi...",
+        "SCAN_QR": "WeChat scan QR, or ",
+        "HINT_SHUTDOWN": "(press 1 second to shutdown)",
 
         "NEW_VERSION": "New version ",
         "OTA_UPGRADE": "OTA Upgrade",
