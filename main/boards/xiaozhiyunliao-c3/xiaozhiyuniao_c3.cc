@@ -24,14 +24,22 @@
 #if CONFIG_LCD_CONTROLLER_ILI9341
     #include <esp_lcd_ili9341.h>
     #include <driver/spi_common.h>
-    LV_FONT_DECLARE(font_puhui_20_4);
-    LV_FONT_DECLARE(font_awesome_20_4);
 #elif CONFIG_LCD_CONTROLLER_ST7789
     #include <esp_lcd_panel_vendor.h>
     #include <driver/spi_common.h>
-    LV_FONT_DECLARE(font_puhui_20_4);
-    LV_FONT_DECLARE(font_awesome_20_4);
 #endif
+
+    LV_FONT_DECLARE(font_awesome_20_4);
+#if (defined  zh_tw)
+     LV_FONT_DECLARE(font_lxgw_20_4_zh_tw);
+     #define FONT font_lxgw_20_4_zh_tw
+ #elif (defined  ja_jp)
+     LV_FONT_DECLARE(font_noto_20_4_ja_jp);
+     #define FONT font_noto_20_4_ja_jp
+ #else
+    LV_FONT_DECLARE(font_puhui_20_4_zh_cn);
+    #define FONT font_puhui_20_4_zh_cn
+ #endif
 
 esp_lcd_panel_handle_t panel = nullptr;
 static QueueHandle_t gpio_evt_queue = NULL;
@@ -212,7 +220,7 @@ void XiaoZhiYunliaoC3::InitializeLCDDisplay() {
         DISPLAY_MIRROR_Y, 
         DISPLAY_SWAP_XY, 
         {                
-            .text_font = &font_puhui_20_4,
+            .text_font = &FONT,
             .icon_font = &font_awesome_20_4,
             .emoji_font = font_emoji_64_init(),
         });

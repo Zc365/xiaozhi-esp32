@@ -195,7 +195,7 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
 
     // 左侧文本说明区
     config_text_panel_ = lv_label_create(config_container_);
-    lv_obj_set_width(config_text_panel_, LV_HOR_RES - 150 - 20);
+    lv_obj_set_width(config_text_panel_, LV_HOR_RES - 150 - 10);
     std::string hint_text = Lang::Strings::HINT1;
     hint_text += "\n  ";
     hint_text += Lang::Strings::HINT2;
@@ -405,3 +405,7 @@ XiaoziyunliaoDisplay::~XiaoziyunliaoDisplay() {
     if (smartconfig_qrcode_) { lv_obj_del(smartconfig_qrcode_); smartconfig_qrcode_ = nullptr; }
 }
 
+void XiaoziyunliaoDisplay::SetChatMessage(const char* role, const char* content) {
+    DisplayLockGuard lock(this);
+    SpiLcdDisplay::SetChatMessage(role, content);
+}

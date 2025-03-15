@@ -33,6 +33,7 @@ public:
 
     void SetLogo(const char* logo);
     void SetStatus(const char* status) override;
+    void SetChatMessage(const char* role, const char* content) override;
 
     PageIndex GetPageIndex() const { return lv_page_index; }
     void SwitchPage(std::optional<PageIndex> target = std::nullopt);
