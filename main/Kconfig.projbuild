@@ -25,7 +25,7 @@ endchoice
 
 choice BOARD_TYPE
     prompt "Board Type"
-    default BOARD_TYPE_BREAD_COMPACT_WIFI
+    default ESP-HI
     help
         Board type. 开发板类型
     config BOARD_TYPE_BREAD_COMPACT_WIFI
