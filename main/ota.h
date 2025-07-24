@@ -20,11 +20,11 @@ public:
     bool HasWebsocketConfig() { return has_websocket_config_; }
     bool HasActivationCode() { return has_activation_code_; }
     bool HasServerTime() { return has_server_time_; }
-    void StartUpgrade(std::function<void(int progress, size_t speed)> callback);
+    bool StartUpgrade(std::function<void(int progress, size_t speed)> callback);
     void MarkCurrentVersionValid();
 
     const std::string& GetFirmwareVersion() const { return firmware_version_; }
-    const std::string& GetCurrentVersion() const { return current_version_; }
+    static const std::string& GetCurrentVersion() { return current_version_; }
     const std::string& GetActivationMessage() const { return activation_message_; }
     const std::string& GetActivationCode() const { return activation_code_; }
     std::string GetCheckVersionUrl();
@@ -39,19 +39,19 @@ private:
     bool has_activation_code_ = false;
     bool has_serial_number_ = false;
     bool has_activation_challenge_ = false;
-    std::string current_version_;
+    static std::string current_version_;
     std::string firmware_version_;
     std::string firmware_url_;
     std::string activation_challenge_;
     std::string serial_number_;
     int activation_timeout_ms_ = 30000;
 
-    void Upgrade(const std::string& firmware_url);
+    bool Upgrade(const std::string& firmware_url);
     std::function<void(int progress, size_t speed)> upgrade_callback_;
     std::vector<int> ParseVersion(const std::string& version);
     bool IsNewVersionAvailable(const std::string& currentVersion, const std::string& newVersion);
     std::string GetActivationPayload();
-    Http* SetupHttp();
+    std::unique_ptr<Http> SetupHttp();
 };
 
 #endif // _OTA_H

@@ -23,7 +23,7 @@
 #define DARK_ASSISTANT_BUBBLE_COLOR lv_color_hex(0x333333)     // Dark gray
 #define DARK_SYSTEM_BUBBLE_COLOR    lv_color_hex(0x2A2A2A)     // Medium gray
 #define DARK_SYSTEM_TEXT_COLOR      lv_color_hex(0xAAAAAA)     // Light gray text
-#define DARK_BORDER_COLOR           lv_color_hex(0x333333)     // Dark gray border
+#define DARK_BORDER_COLOR           lv_color_hex(0x1E1E1E)     // Dark gray border
 #define DARK_LOW_BATTERY_COLOR      lv_color_hex(0xFF0000)     // Red for dark mode
 
 // Color definitions for light theme
@@ -64,6 +64,9 @@ const ThemeColors LIGHT_THEME = {
     .low_battery = LIGHT_LOW_BATTERY_COLOR
 };
 
+// Current theme - initialize based on default config
+static ThemeColors current_theme = DARK_THEME;
+
 
 LV_FONT_DECLARE(font_awesome_30_4);
 
@@ -74,7 +77,7 @@ LcdDisplay::LcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_handle_
 
     // Load theme from settings
     Settings settings("display", false);
-    current_theme_name_ = settings.GetString("theme", "light");
+    current_theme_name_ = settings.GetString("theme", "dark");
 
     // Update the theme
     if (current_theme_name_ == "dark") {
@@ -113,7 +116,11 @@ SpiLcdDisplay::SpiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_h
         .io_handle = panel_io_,
         .panel_handle = panel_,
         .control_handle = nullptr,
+#if CONFIG_IDF_TARGET_ESP32C3
+        .buffer_size = static_cast<uint32_t>(width_ * 5),
+#else
         .buffer_size = static_cast<uint32_t>(width_ * 20),
+#endif        
         .double_buffer = false,
         .trans_size = 0,
         .hres = static_cast<uint32_t>(width_),
@@ -145,7 +152,7 @@ SpiLcdDisplay::SpiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_h
         lv_display_set_offset(display_, offset_x, offset_y);
     }
 
-    SetupUI();
+    // SetupUI();
 }
 
 // RGB LCD实现
@@ -840,6 +847,7 @@ void LcdDisplay::SetEmotion(const char* emotion) {
     };
 
     static const std::vector<Emotion> emotions = {
+        {"🔔", "bell"},
         {"😶", "neutral"},
         {"🙂", "happy"},
         {"😆", "laughing"},
@@ -880,14 +888,12 @@ void LcdDisplay::SetEmotion(const char* emotion) {
     } else {
         lv_label_set_text(emotion_label_, "😶");
     }
-
-#if !CONFIG_USE_WECHAT_MESSAGE_STYLE
-    // 显示emotion_label_，隐藏preview_image_
-    lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
+    
     if (preview_image_ != nullptr) {
+        // 显示emotion_label_，隐藏preview_image_
+        lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(preview_image_, LV_OBJ_FLAG_HIDDEN);
     }
-#endif
 }
 
 void LcdDisplay::SetIcon(const char* icon) {
@@ -897,14 +903,12 @@ void LcdDisplay::SetIcon(const char* icon) {
     }
     lv_obj_set_style_text_font(emotion_label_, &font_awesome_30_4, 0);
     lv_label_set_text(emotion_label_, icon);
-
-#if !CONFIG_USE_WECHAT_MESSAGE_STYLE
-    // 显示emotion_label_，隐藏preview_image_
-    lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
+    
     if (preview_image_ != nullptr) {
+        // 显示emotion_label_，隐藏preview_image_
+        lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(preview_image_, LV_OBJ_FLAG_HIDDEN);
     }
-#endif
 }
 
 void LcdDisplay::SetTheme(const std::string& theme_name) {

@@ -9,12 +9,7 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp_http.h>
-#include <esp_mqtt.h>
-#include <esp_udp.h>
-#include <tcp_transport.h>
-#include <tls_transport.h>
-#include <web_socket.h>
+#include <esp_network.h>
 #include <esp_log.h>
 
 #include <wifi_station.h>
@@ -56,7 +51,7 @@ void WifiBoard::EnterWifiConfigMode() {
     // 播报配置 WiFi 的提示
     application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "", Lang::Sounds::P3_WIFICONFIG);
 
-    #if USE_ACOUSTIC_WIFI_PROVISIONING
+    #if CONFIG_USE_ACOUSTIC_WIFI_PROVISIONING
     audio_wifi_config::ReceiveWifiCredentialsFromAudio(&application, &wifi_ap);
     #endif
     
@@ -106,7 +101,7 @@ void WifiBoard::StartNetwork() {
     wifi_station.Start();
 
     // Try to connect to WiFi, if failed, launch the WiFi configuration AP
-    if (!wifi_station.WaitForConnected(60 * 1000)) {
+    if (!wifi_station.WaitForConnected(30 * 1000)) {
         wifi_station.Stop();
         wifi_config_mode_ = true;
         EnterWifiConfigMode();
@@ -114,27 +109,9 @@ void WifiBoard::StartNetwork() {
     }
 }
 
-Http* WifiBoard::CreateHttp() {
-    return new EspHttp();
-}
-
-WebSocket* WifiBoard::CreateWebSocket() {
-    Settings settings("websocket", false);
-    std::string url = settings.GetString("url");
-    if (url.find("wss://") == 0) {
-        return new WebSocket(new TlsTransport());
-    } else {
-        return new WebSocket(new TcpTransport());
-    }
-    return nullptr;
-}
-
-Mqtt* WifiBoard::CreateMqtt() {
-    return new EspMqtt();
-}
-
-Udp* WifiBoard::CreateUdp() {
-    return new EspUdp();
+NetworkInterface* WifiBoard::GetNetwork() {
+    static EspNetwork network;
+    return &network;
 }
 
 const char* WifiBoard::GetNetworkStateIcon() {
@@ -256,22 +233,28 @@ std::string WifiBoard::GetDeviceStatusJson() {
     cJSON_AddStringToObject(network, "type", "wifi");
     cJSON_AddStringToObject(network, "ssid", wifi_station.GetSsid().c_str());
     int rssi = wifi_station.GetRssi();
-    if (rssi >= -60) {
-        cJSON_AddStringToObject(network, "signal", "strong");
-    } else if (rssi >= -70) {
-        cJSON_AddStringToObject(network, "signal", "medium");
-    } else {
-        cJSON_AddStringToObject(network, "signal", "weak");
-    }
+    // if (rssi >= -60) {
+    //     cJSON_AddStringToObject(network, "signal", "strong");
+    // } else if (rssi >= -70) {
+    //     cJSON_AddStringToObject(network, "signal", "medium");
+    // } else {
+    //     cJSON_AddStringToObject(network, "signal", "weak");
+    // }
+    cJSON_AddNumberToObject(network, "signal", rssi);
+    cJSON_AddStringToObject(network, "mac_address", SystemInfo::GetMacAddress().c_str());
     cJSON_AddItemToObject(root, "network", network);
 
     // Chip
-    float esp32temp = 0.0f;
-    if (board.GetTemperature(esp32temp)) {
+    // float esp32temp = 0.0f;
+    // if (board.GetTemperature(esp32temp)) {
         auto chip = cJSON_CreateObject();
-        cJSON_AddNumberToObject(chip, "temperature", esp32temp);
+        // cJSON_AddNumberToObject(chip, "temperature", esp32temp);
+        cJSON_AddStringToObject(chip, "hardware_version", board.GetHardwareVersion().c_str());
+        cJSON_AddStringToObject(chip, "version", Ota::GetCurrentVersion().c_str());
+        cJSON_AddNumberToObject(chip, "chip_flash_size", SystemInfo::GetFlashSize() / 1024 / 1024);
+        cJSON_AddStringToObject(chip, "chip_model", SystemInfo::GetChipModelName().c_str());
         cJSON_AddItemToObject(root, "chip", chip);
-    }
+    // }
 
     auto json_str = cJSON_PrintUnformatted(root);
     std::string json(json_str);

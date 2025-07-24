@@ -7,6 +7,7 @@
 #include <esp_pm.h>
 
 #include <string>
+#include <chrono>
 
 struct DisplayFonts {
     const lv_font_t* text_font = nullptr;
@@ -29,9 +30,13 @@ public:
     virtual void SetTheme(const std::string& theme_name);
     virtual std::string GetTheme() { return current_theme_name_; }
     virtual void UpdateStatusBar(bool update_all = false);
+    virtual void ShowStandbyScreen(bool show);
 
     inline int width() const { return width_; }
     inline int height() const { return height_; }
+#if CONFIG_USE_MUSIC
+    virtual void SetMusicInfo(const char* song_name);
+#endif
 
 protected:
     int width_ = 0;
@@ -55,6 +60,7 @@ protected:
     bool muted_ = false;
     std::string current_theme_name_;
 
+    std::chrono::system_clock::time_point last_status_update_time_;
     esp_timer_handle_t notification_timer_ = nullptr;
 
     friend class DisplayLockGuard;

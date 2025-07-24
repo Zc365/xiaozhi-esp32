@@ -8,6 +8,9 @@
 #include <esp_ota_ops.h>
 #include <esp_chip_info.h>
 #include <esp_random.h>
+#if CONFIG_USE_MUSIC
+    #include "esp32_music.h"
+#endif
 
 #define TAG "Board"
 
@@ -19,7 +22,26 @@ Board::Board() {
         settings.SetString("uuid", uuid_);
     }
     ESP_LOGI(TAG, "UUID=%s SKU=%s", uuid_.c_str(), BOARD_NAME);
+#if CONFIG_USE_MUSIC
+    // 初始化音乐播放器
+    music_ = new Esp32Music();
+    ESP_LOGI(TAG, "Music player initialized for all boards");
+#endif
 }
+
+#if CONFIG_USE_MUSIC
+    Board::~Board() {
+        if (music_) {
+            delete music_;
+            music_ = nullptr;
+            ESP_LOGI(TAG, "Music player destroyed");
+        }
+    }
+
+    Music* Board::GetMusic() {
+        return music_;
+    }
+#endif
 
 std::string Board::GenerateUuid() {
     // UUID v4 需要 16 字节的随机数据

@@ -28,6 +28,12 @@ choice BOARD_TYPE
     default BOARD_TYPE_ESP_HI
     help
         Board type. 开发板类型
+    config BOARD_TYPE_YUNLIAO_C3
+        bool "小智云聊C3"
+        depends on IDF_TARGET_ESP32C3
+    config BOARD_TYPE_YUNLIAO_S3
+        bool "小智云聊S3"
+        depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_BREAD_COMPACT_WIFI
         bool "面包板新版接线（WiFi）"
         depends on IDF_TARGET_ESP32S3
@@ -46,6 +52,12 @@ choice BOARD_TYPE
     config BOARD_TYPE_BREAD_COMPACT_ESP32_LCD
         bool "面包板（WiFi+ LCD） ESP32 DevKit"
         depends on IDF_TARGET_ESP32
+    config BOARD_TYPE_XMINI_C3_V3
+        bool "虾哥 Mini C3 V3"
+        depends on IDF_TARGET_ESP32C3
+    config BOARD_TYPE_XMINI_C3_4G
+        bool "虾哥 Mini C3 4G"
+        depends on IDF_TARGET_ESP32C3
     config BOARD_TYPE_XMINI_C3
         bool "虾哥 Mini C3"
         depends on IDF_TARGET_ESP32C3
@@ -142,6 +154,8 @@ choice BOARD_TYPE
     config BOARD_TYPE_ESP32S3_Touch_AMOLED_1_8
         bool "Waveshare ESP32-S3-Touch-AMOLED-1.8"
         depends on IDF_TARGET_ESP32S3
+    config BOARD_TYPE_ESP32S3_Touch_AMOLED_2_06
+        bool "Waveshare ESP32-S3-Touch-AMOLED-2.06"
     config BOARD_TYPE_ESP32S3_Touch_AMOLED_1_75
         bool "Waveshare ESP32-S3-Touch-AMOLED-1.75"
         depends on IDF_TARGET_ESP32S3
@@ -156,6 +170,9 @@ choice BOARD_TYPE
         depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_ESP32C6_LCD_1_69
         bool "Waveshare ESP32-C6-LCD-1.69"
+        depends on IDF_TARGET_ESP32C6
+    config BOARD_TYPE_ESP32C6_Touch_AMOLED_1_43
+        bool "Waveshare ESP32-C6-Touch-AMOLOED-1.43"
         depends on IDF_TARGET_ESP32C6
     config BOARD_TYPE_ESP32S3_Touch_LCD_3_5
         bool "Waveshare ESP32-S3-Touch-LCD-3.5"
@@ -205,6 +222,12 @@ choice BOARD_TYPE
     config BOARD_TYPE_ATK_DNESP32S3_BOX0
         bool "正点原子DNESP32S3-BOX0"
         depends on IDF_TARGET_ESP32S3
+    config BOARD_TYPE_ATK_DNESP32S3_BOX2_WIFI
+        bool "正点原子DNESP32S3-BOX2-WIFI"
+        depends on IDF_TARGET_ESP32S3
+    config BOARD_TYPE_ATK_DNESP32S3_BOX2_4G
+        bool "正点原子DNESP32S3-BOX2-4G" 
+        depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_ATK_DNESP32S3M_WIFI
         bool "正点原子DNESP32S3M-WIFI"
         depends on IDF_TARGET_ESP32S3
@@ -247,6 +270,9 @@ choice BOARD_TYPE
     config BOARD_TYPE_GENJUTECH_S3_1_54TFT
         bool "亘具科技1.54(s3)"
         depends on IDF_TARGET_ESP32S3
+    config BOARD_TYPE_MOGAI_CUICAN_ESP32S3
+        bool "Mogai CuiCan 魔改璀璨·AI吊坠"
+        depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_ESP_S3_LCD_EV_Board
         bool "乐鑫ESP S3 LCD EV Board开发板"
         depends on IDF_TARGET_ESP32S3
@@ -277,6 +303,16 @@ choice BOARD_TYPE
         select LV_GIF_CACHE_DECODE_DATA
     config BOARD_TYPE_JIUCHUAN
         bool "九川智能"
+    config BOARD_TYPE_LABPLUS_MPYTHON_V3
+        bool "labplus mpython_v3 board"
+        depends on IDF_TARGET_ESP32S3
+    config BOARD_TYPE_LABPLUS_LEDONG_V2
+        bool "labplus ledong_v2 board"
+        depends on IDF_TARGET_ESP32S3
+    depends on IDF_TARGET_ESP32S3
+    config BOARD_TYPE_SURFER_C3_1_14TFT
+        bool "Surfer-C3-1-14TFT"
+        depends on IDF_TARGET_ESP32C3
 endchoice
 
 choice ESP_S3_LCD_EV_Board_Version_TYPE
@@ -385,6 +421,27 @@ config USE_AFE_WAKE_WORD
     help
         需要 ESP32 S3 与 PSRAM 支持
 
+config USE_CUSTOM_WAKE_WORD
+    bool "Enable Custom Wake Word Detection"
+    default n
+    depends on (IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32P4) && SPIRAM && (!USE_AFE_WAKE_WORD)
+    help
+        需要 ESP32 S3 与 PSRAM 支持
+        
+config CUSTOM_WAKE_WORD
+    string "Custom Wake Word"
+    default "ni hao xiao zhi"
+    depends on USE_CUSTOM_WAKE_WORD
+    help
+        自定义唤醒词，用汉语拼音表示
+
+config CUSTOM_WAKE_WORD_DISPLAY
+    string "Custom Wake Word Display"
+    default "ni hao"
+    depends on USE_CUSTOM_WAKE_WORD
+    help
+        自定义唤醒词对应问候语 
+        
 config USE_AUDIO_PROCESSOR
     bool "Enable Audio Noise Reduction"
     default y
@@ -394,8 +451,8 @@ config USE_AUDIO_PROCESSOR
 
 config USE_DEVICE_AEC
     bool "Enable Device-Side AEC"
-    default n
-        depends on USE_AUDIO_PROCESSOR && (BOARD_TYPE_ESP_BOX_3 || BOARD_TYPE_ESP_BOX || BOARD_TYPE_ESP_BOX_LITE || BOARD_TYPE_LICHUANG_DEV || BOARD_TYPE_ESP32S3_KORVO2_V3 || BOARD_TYPE_ESP32S3_Touch_AMOLED_1_75 || BOARD_TYPE_ESP32P4_WIFI6_Touch_LCD_4B || BOARD_TYPE_ESP32P4_WIFI6_Touch_LCD_XC)
+    default y
+        depends on USE_AUDIO_PROCESSOR && (BOARD_TYPE_ESP_BOX_3 || BOARD_TYPE_ESP_BOX || BOARD_TYPE_ESP_BOX_LITE || BOARD_TYPE_LICHUANG_DEV || BOARD_TYPE_ESP32S3_KORVO2_V3 || BOARD_TYPE_ESP32S3_Touch_AMOLED_1_75 || BOARD_TYPE_ESP32S3_Touch_AMOLED_2_06 || BOARD_TYPE_ESP32P4_WIFI6_Touch_LCD_4B || BOARD_TYPE_ESP32P4_WIFI6_Touch_LCD_XC || BOARD_TYPE_YUNLIAO_S3)
     help
         因为性能不够，不建议和微信聊天界面风格同时开启
 
@@ -425,15 +482,90 @@ config AUDIO_DEBUG_UDP_SERVER
     help
         UDP服务器地址，格式: IP:PORT，用于接收音频调试数据
 
-choice IOT_PROTOCOL
-    prompt "IoT Protocol"
-    default IOT_PROTOCOL_MCP
+config RECEIVE_CUSTOM_MESSAGE
+    bool "Enable Custom Message Reception"
+    default n
     help
-        IoT 协议，用于获取设备状态与发送控制指令
-    config IOT_PROTOCOL_MCP
-        bool "MCP 2024-11-05"
-    config IOT_PROTOCOL_XIAOZHI
-        bool "Xiaozhi IoT 1.0 (Deprecated)"
+        启用接收自定义消息功能，允许设备接收来自服务器的自定义消息（最好通过 MQTT 协议）
+        
+choice YUNLIAO_C3_VERSION
+    depends on BOARD_TYPE_YUNLIAO_C3
+    prompt "YUNLIAO VERSION"
+    default BOARD_TYPE_YUNLIAO_V2
+    help
+        版本
+    config BOARD_TYPE_YUNLIAO_V1
+        bool "V1"
+    config BOARD_TYPE_YUNLIAO_V2
+        bool "V2"
+endchoice
+
+choice LCD_CONTROLLER
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    prompt "LCD controller model"
+    default LCD_CONTROLLER_ST7789
+    help
+        液晶型号
+    config LCD_CONTROLLER_ILI9341
+        bool "ILI9341"
+    config LCD_CONTROLLER_ST7789
+        bool "ST7789"
+    config LCD_CONTROLLER_NC
+        bool "NC"
+endchoice
+
+config USE_GIF_EMOTION_STYLE
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "使用GIF表情"
+    select LV_USE_GIF
+    select LV_GIF_CACHE_DECODE_DATA
+    default n
+    help
+        使用GIF表情
+
+config USE_ALARM
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用闹钟功能"
+    default y
+    help
+        一个自定义的闹钟功能
+
+config USE_MUSIC
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用音乐播放器功能"
+    default y
+    help
+        启用音乐播放器功能，允许播放在线音乐。需后台配置
+
+config USE_NEWS
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用新闻功能"
+    default n
+    help
+        启用新闻功能，允许播放RSS新闻
+
+config WIFI_FACTORY_SSID
+    string "WiFi Factory SSID"
+    default ""
+    help
+        SSID (network name) 
+
+config WIFI_FACTORY_PASSWORD
+    string "WiFi Factory Password"
+    default ""
+    help
+        WiFi password (WPA or WPA2)
+
+choice I2S_TYPE_TAIJIPI_S3
+    depends on BOARD_TYPE_ESP32S3_Taiji_Pi
+    prompt "taiji-pi-S3 I2S Type"
+    default TAIJIPAI_I2S_TYPE_STD
+    help
+        I2S 类型选择
+    config TAIJIPAI_I2S_TYPE_STD
+        bool "I2S Type STD"
+    config TAIJIPAI_I2S_TYPE_PDM
+        bool "I2S Type PDM"
 endchoice
 
 endmenu

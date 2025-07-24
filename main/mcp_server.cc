@@ -13,6 +13,20 @@
 #include "application.h"
 #include "display.h"
 #include "board.h"
+#if CONFIG_USE_ALARM
+    #include "AlarmClock.h"
+#endif
+#if CONFIG_USE_NEWS
+    #include "mcp_news_tools.h"
+#endif
+#if CONFIG_BOARD_TYPE_YUNLIAO_S3
+    #include "boards/xiaozhiyunliao-s3/xiaozhiyunliao_s3.h"
+    #include "boards/xiaozhiyunliao-s3/xiaoziyunliao_display.h"
+#endif
+#if CONFIG_BOARD_TYPE_YUNLIAO_C3
+    #include "boards/xiaozhiyunliao-c3/xiaozhiyunliao_c3.h"
+    #include "boards/xiaozhiyunliao-c3/xiaoziyunliao_display.h"
+#endif
 
 #define TAG "MCP"
 
@@ -70,18 +84,18 @@ void McpServer::AddCommonTools() {
             });
     }
 
-    auto display = board.GetDisplay();
-    if (display && !display->GetTheme().empty()) {
-        AddTool("self.screen.set_theme",
-            "Set the theme of the screen. The theme can be `light` or `dark`.",
-            PropertyList({
-                Property("theme", kPropertyTypeString)
-            }),
-            [display](const PropertyList& properties) -> ReturnValue {
-                display->SetTheme(properties["theme"].value<std::string>().c_str());
-                return true;
-            });
-    }
+    // auto display = board.GetDisplay();
+    // if (display && !display->GetTheme().empty()) {
+    //     AddTool("self.screen.set_theme",
+    //         "Set the theme of the screen. The theme can be `light` or `dark`.",
+    //         PropertyList({
+    //             Property("theme", kPropertyTypeString)
+    //         }),
+    //         [display](const PropertyList& properties) -> ReturnValue {
+    //             display->SetTheme(properties["theme"].value<std::string>().c_str());
+    //             return true;
+    //         });
+    // }
 
     auto camera = board.GetCamera();
     if (camera) {
@@ -102,6 +116,166 @@ void McpServer::AddCommonTools() {
                 return camera->Explain(question);
             });
     }
+#if CONFIG_BOARD_TYPE_YUNLIAO_S3
+    // System control tools
+    AddTool("self.system.reconfigure_wifi",
+        "Reboot the device and enter WiFi configuration mode,Requires user confirmation before execution.",
+        PropertyList(), [](const PropertyList& properties) {
+            auto board = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            board->ResetWifiConfiguration();
+            return true;
+        });
+
+    AddTool("self.system.power_off",
+        "Power off the device after 1-second delay,Requires user confirmation before execution.",
+        PropertyList(), [this](const PropertyList& properties) {
+            ESP_LOGI("McpTools", "Delaying power off for 1 seconds");
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            auto board = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            board->Sleep();
+            return true;
+        });
+
+    AddTool("self.system.restart",
+        "Restart the device after 1-second delay,Requires user confirmation before execution.",
+        PropertyList(), [this](const PropertyList& properties) {
+            ESP_LOGI("McpTools", "Delaying restart for 1 seconds");
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            esp_restart();
+            return true;
+        });
+
+    // Existing display tools
+    AddTool("self.screen.show_help_page", 
+        "Switch to the help/configuration page. Use this when user needs to access device settings or help information.",
+        PropertyList(),
+        [this](const PropertyList& properties) -> ReturnValue {
+            auto display = Board::GetInstance().GetDisplay();
+            if (display) {
+                auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                lcd_display->SwitchPage(PageIndex::PAGE_CONFIG);
+            }
+            return true;
+        });
+
+    AddTool("self.screen.show_chat_page", 
+        "Switch to the main chat interface. Use this as the default view for normal conversation.",
+        PropertyList(),
+        [this](const PropertyList& properties) -> ReturnValue {
+            auto display = Board::GetInstance().GetDisplay();
+            if (display) {
+                auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                lcd_display->SwitchPage(PageIndex::PAGE_CHAT);
+            }
+            return true;
+        });
+#endif
+#if CONFIG_BOARD_TYPE_YUNLIAO_C3
+        // System control tools
+        AddTool("self.system.reconfigure_wifi",
+            "Reboot the device and enter WiFi configuration mode,Requires user confirmation before execution.",
+            PropertyList(), [](const PropertyList& properties) {
+                auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                board->ResetWifiConfiguration();
+                return true;
+            });
+
+        AddTool("self.system.power_off",
+            "Power off the device after 1-second delay,Requires user confirmation before execution.",
+            PropertyList(), [this](const PropertyList& properties) {
+                ESP_LOGI("McpTools", "Delaying power off for 1 seconds");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                board->Sleep();
+                return true;
+            });
+
+        AddTool("self.system.restart",
+            "Restart the device after 1-second delay,Requires user confirmation before execution.",
+            PropertyList(), [this](const PropertyList& properties) {
+                ESP_LOGI("McpTools", "Delaying restart for 1 seconds");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                esp_restart();
+                return true;
+            });
+
+        // Existing display tools
+        AddTool("self.screen.show_help_page", 
+            "Switch to the help/configuration page. Use this when user needs to access device settings or help information.",
+            PropertyList(),
+            [this](const PropertyList& properties) -> ReturnValue {
+                auto display = Board::GetInstance().GetDisplay();
+                if (display) {
+                    auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                    lcd_display->SwitchPage(PageIndex::PAGE_CONFIG);
+                }
+                return true;
+            });
+
+        AddTool("self.screen.show_chat_page", 
+            "Switch to the main chat interface. Use this as the default view for normal conversation.",
+            PropertyList(),
+            [this](const PropertyList& properties) -> ReturnValue {
+                auto display = Board::GetInstance().GetDisplay();
+                if (display) {
+                    auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                    lcd_display->SwitchPage(PageIndex::PAGE_CHAT);
+                }
+                return true;
+            });
+#endif
+#if CONFIG_USE_ALARM
+    AddTool("self.alarm.set_Alarm",
+        "Set an alarm. The alarm will ring at the specified time.\n"
+        "Args:\n"
+        "  `time`: The time to set the alarm, in seconds from now.The accurate calculation of time is required.\n"
+        "  `name`: The name of the alarm.\n"
+        "Return:\n"
+        "  A JSON object that indicates whether the alarm is set successfully.",
+        PropertyList({
+            Property("time", kPropertyTypeInteger), // 1 second to 24 hours
+            Property("name", kPropertyTypeString)
+        }),
+        [](const PropertyList& properties) -> ReturnValue {
+            auto& app = Application::GetInstance();
+            if(app.alarm_m_ == nullptr){
+                ESP_LOGE(TAG, "AlarmManager is nullptr");
+                return "{\"success\": false, \"message\": \"AlarmManager is not initialized\"}";
+            }
+            ESP_LOGI(TAG, "SetAlarm");
+            int seconde_from_now = static_cast<int>(properties["time"].value<int>());
+            std::string alarm_name = properties["name"].value<std::string>();
+            return app.alarm_m_->SetAlarm(seconde_from_now, alarm_name);
+            // app.alarm_m_->SetAlarm(seconde_from_now, alarm_name);
+            // return "{\"success\": true, \"message\": \"Alarm set successfully\"}";
+        });
+#endif
+#if CONFIG_USE_MUSIC
+    auto music = board.GetMusic();
+    if (music) {
+        AddTool("self.music.play_song",
+            "播放指定的歌曲。当用户要求播放音乐时使用此工具，会自动获取歌曲详情并开始流式播放。\n"
+            "参数:\n"
+            "  `song_name`: 要播放的歌曲名称。\n"
+            "返回:\n"
+            "  播放状态信息，不需确认，立刻播放歌曲。",
+            PropertyList({
+                Property("song_name", kPropertyTypeString)
+            }),
+            [music](const PropertyList& properties) -> ReturnValue {
+                auto song_name = properties["song_name"].value<std::string>();
+                if (!music->Download(song_name)) {
+                    return "{\"success\": false, \"message\": \"获取音乐资源失败\"}";
+                }
+                auto download_result = music->GetDownloadResult();
+                ESP_LOGD(TAG, "Music details result: %s", download_result.c_str());
+                return true;
+            });
+    }
+#endif
+#if CONFIG_USE_NEWS
+    AddNewsMcpTools();
+#endif
 
     // Restore the original tools list to the end of the tools list
     tools_.insert(tools_.end(), original_tools.begin(), original_tools.end());
