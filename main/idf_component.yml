@@ -18,7 +18,7 @@ dependencies:
   78/esp-ml307: ~3.2.0
   78/xiaozhi-fonts: ~1.3.2
   espressif/led_strip: ^2.5.5
-  espressif/esp_codec_dev: ~1.3.2
+  espressif/esp_codec_dev: ==1.3.4
   espressif/esp-sr: ~2.1.1
   espressif/button: ~4.1.3
   espressif/knob: ^1.0.0
@@ -34,7 +34,7 @@ dependencies:
   espressif/adc_mic: ^0.2.0
   espressif/esp_mmap_assets: '>=1.2'
   # txp666/otto-emoji-gif-component: ~1.0.2
-  # espressif/adc_battery_estimation: ^0.2.0
+  espressif/adc_battery_estimation: ^0.2.0
 
   # SenseCAP Watcher Board
   # wvirgil123/esp_jpeg_simd:

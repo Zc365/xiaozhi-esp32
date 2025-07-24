@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "music.h"
+#if CONFIG_USE_MUSIC
 
 // MP3解码器支持
 extern "C" {
@@ -94,3 +95,4 @@ public:
 };
 
 #endif // ESP32_MUSIC_H
+#endif

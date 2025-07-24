@@ -548,9 +548,9 @@ void Application::OnClockTimer() {
 
     // Print the debug info every 10 seconds
     if (clock_ticks_ % 10 == 0) {
-        SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
+        // SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
         // SystemInfo::PrintTaskList();
-        // SystemInfo::PrintHeapStats();
+        SystemInfo::PrintHeapStats();
 
     }
 #if CONFIG_USE_ALARM
