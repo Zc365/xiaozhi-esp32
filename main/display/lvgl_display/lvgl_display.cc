@@ -120,6 +120,7 @@ void LvglDisplay::UpdateStatusBar(bool update_all) {
         }
     }
 
+#ifndef CONFIG_BOARD_TYPE_YUNLIAO_S3
     // Update time
     if (app.GetDeviceState() == kDeviceStateIdle) {
         if (last_status_update_time_ + std::chrono::seconds(10) < std::chrono::system_clock::now()) {
@@ -136,6 +137,7 @@ void LvglDisplay::UpdateStatusBar(bool update_all) {
             }
         }
     }
+#endif
 
     esp_pm_lock_acquire(pm_lock_);
     // 更新电池图标

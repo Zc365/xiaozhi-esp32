@@ -1,0 +1,21 @@
+{
+    "target": "esp32c3",
+    "builds": [
+        {
+            "name": "xiaozhiyunliao-c3",
+            "sdkconfig_append": [
+                "CONFIG_LANGUAGE_ZH_CN=y",
+                "CONFIG_BOARD_TYPE_YUNLIAO_V2=y",
+                "CONFIG_PM_ENABLE=y",
+                "CONFIG_USE_ESP_WAKE_WORD=y",
+                "CONFIG_USE_MUSIC=n",
+                "CONFIG_USE_WEATHER=n",
+                "CONFIG_USE_ALARM=y",
+                "CONFIG_USE_BLUETOOTH=n",
+                "CONFIG_USE_NEWS=n",
+                "CONFIG_WIFI_FACTORY_SSID=\"xiaozhi\"",
+                "CONFIG_WIFI_FACTORY_PASSWORD=\"12345678\""
+            ]
+        }
+    ]
+}

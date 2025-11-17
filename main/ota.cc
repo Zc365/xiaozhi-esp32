@@ -21,6 +21,9 @@
 
 #define TAG "Ota"
 
+// 定义静态成员变量
+std::string Ota::current_version_;
+
 
 Ota::Ota() {
 #ifdef ESP_EFUSE_BLOCK_USR_DATA

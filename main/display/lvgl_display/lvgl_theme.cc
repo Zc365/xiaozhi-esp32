@@ -22,6 +22,10 @@ LvglTheme* LvglThemeManager::GetTheme(const std::string& theme_name) {
     if (it != themes_.end()) {
         return it->second;
     }
+    // If theme not found, return the first theme if available
+    if (!themes_.empty()) {
+        return themes_.begin()->second;
+    }
     return nullptr;
 }
 

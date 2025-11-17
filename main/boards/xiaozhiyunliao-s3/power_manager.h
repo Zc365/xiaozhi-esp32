@@ -16,12 +16,11 @@ public:
     bool IsDischarging();
     bool IsChargingDone();
     int GetBatteryLevel();
-    void CheckStartup();
     void Start5V();
     void Shutdown5V();
     void Start4G();
     void Shutdown4G();
-    void Sleep();
+    void MCUSleep();
     void CheckBatteryStatus();
     void OnChargingStatusChanged(std::function<void(bool)> callback);
     void OnChargingStatusDisChanged(std::function<void(bool)> callback);

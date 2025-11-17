@@ -5,13 +5,12 @@
 #include "config.h"
 #include <esp_sleep.h>
 #include "esp_log.h"
-#include "settings.h"
 
 #define TAG "PowerManager"
 
 static QueueHandle_t gpio_evt_queue = NULL;
 uint16_t battCnt;//闪灯次数
-int battLife = 70; //电量
+int battLife = -1; //电量
 
 // 中断服务程序
 static void IRAM_ATTR batt_mon_isr_handler(void* arg) {
@@ -42,8 +41,8 @@ static void calBattLife() {
 }
 
 PowerManager::PowerManager(){
-}
 
+}
 void PowerManager::Initialize(){
     // 初始化5V控制引脚
     gpio_config_t io_conf_5v = {
@@ -75,13 +74,13 @@ void PowerManager::Initialize(){
     };
     ESP_ERROR_CHECK(gpio_config(&io_conf_batt_mon));
     // 创建电量GPIO事件队列
-    gpio_evt_queue = xQueueCreate(2, sizeof(uint32_t));
+    gpio_evt_queue = xQueueCreate(1, sizeof(uint32_t));
     // 安装电量GPIO ISR服务
     ESP_ERROR_CHECK(gpio_install_isr_service(0));
     // 添加中断处理
     ESP_ERROR_CHECK(gpio_isr_handler_add(MON_BATT_PIN, batt_mon_isr_handler, (void*)MON_BATT_PIN));
      // 创建监控任务
-    xTaskCreate(&batt_mon_task, "batt_mon_task", 1024, NULL, 10, NULL);
+    xTaskCreate(&batt_mon_task, "batt_mon_task", 2048, NULL, 10, NULL);
 
     // 初始化监测引脚
     gpio_config_t mon_conf = {};
@@ -139,7 +138,7 @@ bool PowerManager::IsDischarging() {
 }
 
 bool PowerManager::IsChargingDone() {
-    return battLife >= 95;
+    return battLife >= 92;
 }
 
 int PowerManager::GetBatteryLevel() {
@@ -152,18 +151,6 @@ void PowerManager::OnChargingStatusChanged(std::function<void(bool)> callback) {
 
 void PowerManager::OnChargingStatusDisChanged(std::function<void(bool)> callback) {
     discharging_callback_ = callback;
-}
-
-void PowerManager::CheckStartup() {
-    Settings settings1("board", true);
-    if(settings1.GetInt("sleep_flag", 0) > 0){
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        if( gpio_get_level(BOOT_BUTTON_PIN) == 1) {
-            Sleep(); //进入休眠模式
-        }else{
-            settings1.SetInt("sleep_flag", 0);
-        }
-    }
 }
 
 void PowerManager::Start5V() {
@@ -180,22 +167,18 @@ void PowerManager::Start4G() {
 
 void PowerManager::Shutdown4G() {
     gpio_set_level(BOOT_4G_PIN, 0);
-    gpio_set_level(ML307_RX_PIN,1);
-    gpio_set_level(ML307_TX_PIN,1);
+    gpio_set_level(ML307_RX_PIN, 0);
+    gpio_set_level(ML307_TX_PIN, 0);
 }
 
-void PowerManager::Sleep() {
-    ESP_LOGI(TAG, "Entering deep sleep");
-    Settings settings("board", true);
-    settings.SetInt("sleep_flag", 1);
-    Shutdown4G();
-    Shutdown5V();
-
+void PowerManager::MCUSleep() {
     if(gpio_evt_queue) {
         vQueueDelete(gpio_evt_queue);
         gpio_evt_queue = NULL;
     }
     ESP_ERROR_CHECK(gpio_isr_handler_remove(BOOT_BUTTON_PIN));
+
+    printf("Enabling EXT0 wakeup on pin GPIO%d\n", BOOT_BUTTON_PIN);
     ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(BOOT_BUTTON_PIN, 0));
     ESP_ERROR_CHECK(rtc_gpio_pulldown_dis(BOOT_BUTTON_PIN));
     ESP_ERROR_CHECK(rtc_gpio_pullup_en(BOOT_BUTTON_PIN));

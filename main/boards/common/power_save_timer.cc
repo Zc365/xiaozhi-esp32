@@ -47,6 +47,10 @@ void PowerSaveTimer::SetEnabled(bool enabled) {
     }
 }
 
+void PowerSaveTimer::SetShutdownEnabled(bool enabled) {
+    shutdown_enabled_ = enabled;
+}
+
 void PowerSaveTimer::OnEnterSleepMode(std::function<void()> callback) {
     on_enter_sleep_mode_ = callback;
 }
@@ -98,7 +102,7 @@ void PowerSaveTimer::PowerSaveCheck() {
             }
         }
     }
-    if (seconds_to_shutdown_ != -1 && ticks_ >= seconds_to_shutdown_ && on_shutdown_request_) {
+    if (seconds_to_shutdown_ != -1 && ticks_ >= seconds_to_shutdown_ && on_shutdown_request_ && shutdown_enabled_) {
         on_shutdown_request_();
     }
 }

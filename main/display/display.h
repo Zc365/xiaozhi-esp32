@@ -42,10 +42,45 @@ public:
 
     inline int width() const { return width_; }
     inline int height() const { return height_; }
+#if CONFIG_USE_MUSIC
+    virtual void SetMusicInfo(const char* song_name);
+    virtual void start() {}
+    virtual void clearScreen() {}  // 清除FFT显示，默认为空实现
+    virtual void stopFft() {}      // 停止FFT显示，默认为空实现
+#endif
+#if CONFIG_USE_BLUETOOTH
+    virtual void ShowBT(bool show);
+#endif
+    virtual void ShowStandbyScreen(bool show){};
 
 protected:
     int width_ = 0;
     int height_ = 0;
+    
+    esp_pm_lock_handle_t pm_lock_ = nullptr;
+    lv_display_t *display_ = nullptr;
+
+    lv_obj_t *emotion_label_ = nullptr;
+    lv_obj_t *network_label_ = nullptr;
+    lv_obj_t *status_label_ = nullptr;
+    lv_obj_t *notification_label_ = nullptr;
+    lv_obj_t *mute_label_ = nullptr;
+#if CONFIG_USE_BLUETOOTH
+    lv_obj_t *bt_label_ = nullptr;
+#endif
+    lv_obj_t *battery_label_ = nullptr;
+    lv_obj_t* chat_message_label_ = nullptr;
+    lv_obj_t* low_battery_popup_ = nullptr;
+    lv_obj_t* low_battery_label_ = nullptr;
+    
+    const char* battery_icon_ = nullptr;
+    const char* network_icon_ = nullptr;
+    bool muted_ = false;
+    std::string current_theme_name_;
+
+    std::chrono::system_clock::time_point last_status_update_time_;
+    esp_timer_handle_t notification_timer_ = nullptr;
+
 
     Theme* current_theme_ = nullptr;
 

@@ -12,6 +12,9 @@
 #include "backlight.h"
 #include "camera.h"
 #include "assets.h"
+#if CONFIG_USE_MUSIC
+    #include "music.h"
+#endif
 
 
 void* create_board();
@@ -28,14 +31,22 @@ protected:
 
     // 软件生成的设备唯一标识
     std::string uuid_;
+#if CONFIG_USE_MUSIC
+    // 音乐播放器实例
+    Music* music_;
+#endif
 
 public:
     static Board& GetInstance() {
         static Board* instance = static_cast<Board*>(create_board());
         return *instance;
     }
-
+#if CONFIG_USE_MUSIC
+    virtual ~Board();  // 改为非默认析构函数，用于清理 music_
+    virtual Music* GetMusic();
+#else
     virtual ~Board() = default;
+#endif
     virtual std::string GetBoardType() = 0;
     virtual std::string GetUuid() { return uuid_; }
     virtual Backlight* GetBacklight() { return nullptr; }
@@ -52,6 +63,7 @@ public:
     virtual void SetPowerSaveMode(bool enabled) = 0;
     virtual std::string GetBoardJson() = 0;
     virtual std::string GetDeviceStatusJson() = 0;
+    virtual std::string GetHardwareVersion() const = 0;
 };
 
 #define DECLARE_BOARD(BOARD_CLASS_NAME) \

@@ -28,6 +28,7 @@ EmojiCollection::~EmojiCollection() {
 }
 
 // These are declared in xiaozhi-fonts/src/font_emoji_32.c
+extern const lv_image_dsc_t emoji_1f514_32; // bell
 extern const lv_image_dsc_t emoji_1f636_32; // neutral
 extern const lv_image_dsc_t emoji_1f642_32; // happy
 extern const lv_image_dsc_t emoji_1f606_32; // laughing
@@ -51,6 +52,7 @@ extern const lv_image_dsc_t emoji_1f61c_32; // silly
 extern const lv_image_dsc_t emoji_1f644_32; // confused
 
 Twemoji32::Twemoji32() {
+    AddEmoji("bell", new LvglSourceImage(&emoji_1f514_32));
     AddEmoji("neutral", new LvglSourceImage(&emoji_1f636_32));
     AddEmoji("happy", new LvglSourceImage(&emoji_1f642_32));
     AddEmoji("laughing", new LvglSourceImage(&emoji_1f606_32));
@@ -76,6 +78,7 @@ Twemoji32::Twemoji32() {
 
 
 // These are declared in xiaozhi-fonts/src/font_emoji_64.c
+extern const lv_image_dsc_t emoji_1f514_64; // bell
 extern const lv_image_dsc_t emoji_1f636_64; // neutral
 extern const lv_image_dsc_t emoji_1f642_64; // happy
 extern const lv_image_dsc_t emoji_1f606_64; // laughing
@@ -99,6 +102,7 @@ extern const lv_image_dsc_t emoji_1f61c_64; // silly
 extern const lv_image_dsc_t emoji_1f644_64; // confused
 
 Twemoji64::Twemoji64() {
+    AddEmoji("bell", new LvglSourceImage(&emoji_1f514_64));
     AddEmoji("neutral", new LvglSourceImage(&emoji_1f636_64));
     AddEmoji("happy", new LvglSourceImage(&emoji_1f642_64));
     AddEmoji("laughing", new LvglSourceImage(&emoji_1f606_64));

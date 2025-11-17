@@ -13,7 +13,8 @@ protected:
     gpio_num_t rx_pin_;
     gpio_num_t dtr_pin_;
 
-    virtual std::string GetBoardJson() override;
+    // virtual std::string GetBoardJson() override;
+    void WaitForNetworkReady();
 
 public:
     Ml307Board(gpio_num_t tx_pin, gpio_num_t rx_pin, gpio_num_t dtr_pin = GPIO_NUM_NC);
@@ -23,6 +24,9 @@ public:
     virtual const char* GetNetworkStateIcon() override;
     virtual void SetPowerSaveMode(bool enabled) override;
     virtual AudioCodec* GetAudioCodec() override { return nullptr; }
+    virtual std::string GetBoardJson() override;
+    bool CheckReady();
+    std::string GetHardwareVersion() const override { return ""; }
     virtual std::string GetDeviceStatusJson() override;
 };
 

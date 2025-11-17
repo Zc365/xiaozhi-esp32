@@ -11,6 +11,7 @@ public:
     ~PowerSaveTimer();
 
     void SetEnabled(bool enabled);
+    void SetShutdownEnabled(bool enabled);
     void OnEnterSleepMode(std::function<void()> callback);
     void OnExitSleepMode(std::function<void()> callback);
     void OnShutdownRequest(std::function<void()> callback);
@@ -21,6 +22,7 @@ private:
 
     esp_timer_handle_t power_save_timer_ = nullptr;
     bool enabled_ = false;
+    bool shutdown_enabled_ = true;
     bool in_sleep_mode_ = false;
     bool is_wake_word_running_ = false;
     int ticks_ = 0;

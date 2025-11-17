@@ -12,8 +12,6 @@ Es8388AudioCodec::Es8388AudioCodec(void* i2c_master_handle, i2c_port_t i2c_port,
     input_channels_ = input_reference_ ? 2 : 1; // 输入通道数
     input_sample_rate_ = input_sample_rate;
     output_sample_rate_ = output_sample_rate;
-    input_gain_ = 24;
-
     pa_pin_ = pa_pin;
     CreateDuplexChannels(mclk, bclk, ws, dout, din);
 
@@ -32,14 +30,14 @@ Es8388AudioCodec::Es8388AudioCodec(void* i2c_master_handle, i2c_port_t i2c_port,
         .addr = es8388_addr,
         .bus_handle = i2c_master_handle,
     };
-    ctrl_if_ = audio_codec_new_i2c_ctrl(&i2c_cfg);
-    assert(ctrl_if_ != NULL);
+    out_ctrl_if_ = audio_codec_new_i2c_ctrl(&i2c_cfg);
+    assert(out_ctrl_if_ != NULL);
 
     gpio_if_ = audio_codec_new_gpio();
     assert(gpio_if_ != NULL);
 
     es8388_codec_cfg_t es8388_cfg = {};
-    es8388_cfg.ctrl_if = ctrl_if_;
+    es8388_cfg.ctrl_if = out_ctrl_if_;
     es8388_cfg.gpio_if = gpio_if_;
     es8388_cfg.codec_mode = ESP_CODEC_DEV_WORK_MODE_BOTH;
     es8388_cfg.master_mode = true;
@@ -47,12 +45,12 @@ Es8388AudioCodec::Es8388AudioCodec(void* i2c_master_handle, i2c_port_t i2c_port,
     es8388_cfg.pa_reverted = false;
     es8388_cfg.hw_gain.pa_voltage = 5.0;
     es8388_cfg.hw_gain.codec_dac_voltage = 3.3;
-    codec_if_ = es8388_codec_new(&es8388_cfg);
-    assert(codec_if_ != NULL);
+    out_codec_if_ = es8388_codec_new(&es8388_cfg);
+    assert(out_codec_if_ != NULL);
 
     esp_codec_dev_cfg_t outdev_cfg = {
         .dev_type = ESP_CODEC_DEV_TYPE_OUT,
-        .codec_if = codec_if_,
+        .codec_if = out_codec_if_,
         .data_if = data_if_,
     };
     output_dev_ = esp_codec_dev_new(&outdev_cfg);
@@ -60,7 +58,7 @@ Es8388AudioCodec::Es8388AudioCodec(void* i2c_master_handle, i2c_port_t i2c_port,
 
     esp_codec_dev_cfg_t indev_cfg = {
         .dev_type = ESP_CODEC_DEV_TYPE_IN,
-        .codec_if = codec_if_,
+        .codec_if = out_codec_if_,
         .data_if = data_if_,
     };
     input_dev_ = esp_codec_dev_new(&indev_cfg);
@@ -76,8 +74,8 @@ Es8388AudioCodec::~Es8388AudioCodec() {
     ESP_ERROR_CHECK(esp_codec_dev_close(input_dev_));
     esp_codec_dev_delete(input_dev_);
 
-    audio_codec_delete_codec_if(codec_if_);
-    audio_codec_delete_ctrl_if(ctrl_if_);
+    audio_codec_delete_codec_if(out_codec_if_);
+    audio_codec_delete_ctrl_if(out_ctrl_if_);
     audio_codec_delete_gpio_if(gpio_if_);
     audio_codec_delete_data_if(data_if_);
 }
@@ -156,12 +154,8 @@ void Es8388AudioCodec::EnableInput(bool enable) {
             fs.channel_mask |= ESP_CODEC_DEV_MAKE_CHANNEL_MASK(1);
         }
         ESP_ERROR_CHECK(esp_codec_dev_open(input_dev_, &fs));
-        if (input_reference_) {
-            uint8_t gain = (11 << 4) + 0;
-            ctrl_if_->write_reg(ctrl_if_, 0x09, 1, &gain, 1);
-        }else{
-            ESP_ERROR_CHECK(esp_codec_dev_set_in_gain(input_dev_, input_gain_));
-        }
+        uint8_t gain = (11 << 4) + 0; //PGA gain L：1011/33dB R：0000/0dB
+        out_ctrl_if_->write_reg(out_ctrl_if_, 0x09, 1, &gain, 1);
     } else {
         ESP_ERROR_CHECK(esp_codec_dev_close(input_dev_));
     }
@@ -182,28 +176,31 @@ void Es8388AudioCodec::EnableOutput(bool enable) {
             .mclk_multiple = 0,
         };
         ESP_ERROR_CHECK(esp_codec_dev_open(output_dev_, &fs));
+        // ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, 0));
+        // out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val0, 1);//LOUT1_VOL
+        // out_ctrl_if_->write_reg(out_ctrl_if_, 47, 1, &reg_val0, 1);//ROUT1_VOL
         ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, output_volume_));
-
-        // Set analog output volume to 0dB, default is -45dB
-        uint8_t reg_val = 30; // 0dB
-        if(input_reference_){
-            reg_val = 27;
-        }
-        uint8_t regs[] = { 46, 47, 48, 49 }; // HP_LVOL, HP_RVOL, SPK_LVOL, SPK_RVOL
-        for (uint8_t reg : regs) {
-            ctrl_if_->write_reg(ctrl_if_, reg, 1, &reg_val, 1);
-        }
-
-        if (pa_pin_ != GPIO_NUM_NC) {
+        uint8_t reg_val = 0B11110 ; // 4.5dB=100001,0dB=11110,27=11011
+        out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val, 1);//LOUT1_VOL 
+        if (pa_enabled_ && pa_pin_ != GPIO_NUM_NC) {
             gpio_set_level(pa_pin_, 1);
         }
     } else {
-        ESP_ERROR_CHECK(esp_codec_dev_close(output_dev_));
         if (pa_pin_ != GPIO_NUM_NC) {
             gpio_set_level(pa_pin_, 0);
         }
+        // uint8_t reg_val0 = 0;
+        // out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val0, 1);//LOUT1_VOL -45dB=000000
+        // ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, 0));
+        ESP_ERROR_CHECK(esp_codec_dev_close(output_dev_));
     }
     AudioCodec::EnableOutput(enable);
+}
+void Es8388AudioCodec::EnablePA(bool enable){
+    pa_enabled_ = enable;
+    if (pa_pin_ != GPIO_NUM_NC && !pa_enabled_ && gpio_get_level(pa_pin_) == 1) {
+        gpio_set_level(pa_pin_, 0);
+    }
 }
 
 int Es8388AudioCodec::Read(int16_t* dest, int samples) {

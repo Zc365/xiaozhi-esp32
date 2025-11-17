@@ -4,12 +4,12 @@
 #include "board.h"
 
 class WifiBoard : public Board {
-protected:
+public:
     bool wifi_config_mode_ = false;
-    void EnterWifiConfigMode();
+    virtual void EnterWifiConfigMode();
     virtual std::string GetBoardJson() override;
 
-public:
+
     WifiBoard();
     virtual std::string GetBoardType() override;
     virtual void StartNetwork() override;
@@ -19,6 +19,7 @@ public:
     virtual void ResetWifiConfiguration();
     virtual AudioCodec* GetAudioCodec() override { return nullptr; }
     virtual std::string GetDeviceStatusJson() override;
+    virtual std::string GetHardwareVersion() const override { return ""; }
 };
 
 #endif // WIFI_BOARD_H

@@ -1,0 +1,21 @@
+{
+    "target": "esp32s3",
+    "builds": [
+        {
+            "name": "xiaozhiyunliao-s3",
+            "sdkconfig_append": [
+                "CONFIG_LANGUAGE_JA_JP=y",
+                "CONFIG_USE_AFE_WAKE_WORD=y",
+                "CONFIG_USE_AUDIO_PROCESSOR=y",
+                "CONFIG_USE_DEVICE_AEC=y",
+                "CONFIG_USE_MUSIC=n",
+                "CONFIG_USE_WEATHER=n",
+                "CONFIG_USE_ALARM=y",
+                "CONFIG_USE_BLUETOOTH=y",
+                "CONFIG_USE_NEWS=y",
+                "CONFIG_WIFI_FACTORY_SSID=\"xiaozhi\"",
+                "CONFIG_WIFI_FACTORY_PASSWORD=\"12345678\""
+            ]
+        }
+    ]
+}

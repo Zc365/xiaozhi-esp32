@@ -25,7 +25,7 @@ public:
     void MarkCurrentVersionValid();
 
     const std::string& GetFirmwareVersion() const { return firmware_version_; }
-    const std::string& GetCurrentVersion() const { return current_version_; }
+    static const std::string& GetCurrentVersion() { return current_version_; }
     const std::string& GetFirmwareUrl() const { return firmware_url_; }
     const std::string& GetActivationMessage() const { return activation_message_; }
     const std::string& GetActivationCode() const { return activation_code_; }
@@ -41,7 +41,7 @@ private:
     bool has_activation_code_ = false;
     bool has_serial_number_ = false;
     bool has_activation_challenge_ = false;
-    std::string current_version_;
+    static std::string current_version_;
     std::string firmware_version_;
     std::string firmware_url_;
     std::string activation_challenge_;

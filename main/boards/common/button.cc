@@ -106,20 +106,63 @@ void Button::OnDoubleClick(std::function<void()> callback) {
     }, this);
 }
 
-void Button::OnMultipleClick(std::function<void()> callback, uint8_t click_count) {
+void Button::OnThreeClick(std::function<void()> callback) {
     if (button_handle_ == nullptr) {
         return;
     }
-    on_multiple_click_ = callback;
+    on_three_click_ = callback;
     button_event_args_t event_args = {
         .multiple_clicks = {
-            .clicks = click_count
+            .clicks = 3
         }
     };
     iot_button_register_cb(button_handle_, BUTTON_MULTIPLE_CLICK, &event_args, [](void* handle, void* usr_data) {
         Button* button = static_cast<Button*>(usr_data);
-        if (button->on_multiple_click_) {
-            button->on_multiple_click_();
+        if (button->on_three_click_) {
+            button->on_three_click_();
         }
     }, this);
+}
+
+void Button::OnFourClick(std::function<void()> callback) {
+    if (button_handle_ == nullptr) {
+        return;
+    }
+    on_four_click_ = callback;
+    button_event_args_t event_args = {
+        .multiple_clicks = {
+            .clicks = 4
+        }
+    };
+    iot_button_register_cb(button_handle_, BUTTON_MULTIPLE_CLICK, &event_args, [](void* handle, void* usr_data) {
+        Button* button = static_cast<Button*>(usr_data);
+        if (button->on_four_click_) {
+            button->on_four_click_();
+        }
+    }, this);
+}
+
+void Button::OnFiveClick(std::function<void()> callback) {
+    if (button_handle_ == nullptr) {
+        return;
+    }
+    on_five_click_ = callback;
+    button_event_args_t event_args = {
+        .multiple_clicks = {
+            .clicks = 5
+        }
+    };
+    iot_button_register_cb(button_handle_, BUTTON_MULTIPLE_CLICK, &event_args, [](void* handle, void* usr_data) {
+        Button* button = static_cast<Button*>(usr_data);
+        if (button->on_five_click_) {
+            button->on_five_click_();
+        }
+    }, this);
+}
+
+int Button::getButtonLevel() const {
+    if (gpio_num_ == GPIO_NUM_NC) {
+        return -1;
+    }
+    return gpio_get_level(gpio_num_);
 }

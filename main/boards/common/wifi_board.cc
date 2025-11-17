@@ -42,7 +42,7 @@ void WifiBoard::EnterWifiConfigMode() {
     wifi_ap.Start();
 
     // 等待 1.5 秒显示开发板信息
-    vTaskDelay(pdMS_TO_TICKS(1500));
+    // vTaskDelay(pdMS_TO_TICKS(1500));
 
     // 显示 WiFi 配置 AP 的 SSID 和 Web 服务器 URL
     std::string hint = Lang::Strings::CONNECT_TO_HOTSPOT;
@@ -243,22 +243,28 @@ std::string WifiBoard::GetDeviceStatusJson() {
     cJSON_AddStringToObject(network, "type", "wifi");
     cJSON_AddStringToObject(network, "ssid", wifi_station.GetSsid().c_str());
     int rssi = wifi_station.GetRssi();
-    if (rssi >= -60) {
-        cJSON_AddStringToObject(network, "signal", "strong");
-    } else if (rssi >= -70) {
-        cJSON_AddStringToObject(network, "signal", "medium");
-    } else {
-        cJSON_AddStringToObject(network, "signal", "weak");
-    }
+    // if (rssi >= -60) {
+    //     cJSON_AddStringToObject(network, "signal", "strong");
+    // } else if (rssi >= -70) {
+    //     cJSON_AddStringToObject(network, "signal", "medium");
+    // } else {
+    //     cJSON_AddStringToObject(network, "signal", "weak");
+    // }
+    cJSON_AddNumberToObject(network, "signal", rssi);
+    cJSON_AddStringToObject(network, "mac_address", SystemInfo::GetMacAddress().c_str());
     cJSON_AddItemToObject(root, "network", network);
 
     // Chip
-    float esp32temp = 0.0f;
-    if (board.GetTemperature(esp32temp)) {
+    // float esp32temp = 0.0f;
+    // if (board.GetTemperature(esp32temp)) {
         auto chip = cJSON_CreateObject();
-        cJSON_AddNumberToObject(chip, "temperature", esp32temp);
+        // cJSON_AddNumberToObject(chip, "temperature", esp32temp);
+        cJSON_AddStringToObject(chip, "hardware_version", board.GetHardwareVersion().c_str());
+        cJSON_AddStringToObject(chip, "version", Ota::GetCurrentVersion().c_str());
+        cJSON_AddNumberToObject(chip, "chip_flash_size", SystemInfo::GetFlashSize() / 1024 / 1024);
+        cJSON_AddStringToObject(chip, "chip_model", SystemInfo::GetChipModelName().c_str());
         cJSON_AddItemToObject(root, "chip", chip);
-    }
+    // }
 
     auto json_str = cJSON_PrintUnformatted(root);
     std::string json(json_str);

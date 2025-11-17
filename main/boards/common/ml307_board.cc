@@ -8,6 +8,7 @@
 #include <esp_timer.h>
 #include <font_awesome.h>
 #include <opus_encoder.h>
+#include "system_info.h"
 
 static const char *TAG = "Ml307Board";
 
@@ -188,6 +189,13 @@ std::string Ml307Board::GetDeviceStatusJson() {
         cJSON_AddStringToObject(network, "signal", "strong");
     }
     cJSON_AddItemToObject(root, "network", network);
+
+    auto chip = cJSON_CreateObject();
+    cJSON_AddStringToObject(chip, "hardware_version", board.GetHardwareVersion().c_str());
+    cJSON_AddStringToObject(chip, "version", Ota::GetCurrentVersion().c_str());
+    cJSON_AddNumberToObject(chip, "chip_flash_size", SystemInfo::GetFlashSize() / 1024 / 1024);
+    cJSON_AddStringToObject(chip, "chip_model", SystemInfo::GetChipModelName().c_str());
+    cJSON_AddItemToObject(root, "chip", chip);
 
     auto json_str = cJSON_PrintUnformatted(root);
     std::string json(json_str);

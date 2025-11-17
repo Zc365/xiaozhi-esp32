@@ -114,9 +114,15 @@ endchoice
 
 choice BOARD_TYPE
     prompt "Board Type"
-    default BOARD_TYPE_BREAD_COMPACT_WIFI
+    default BOARD_TYPE_YUNLIAO_S3
     help
         Board type. 开发板类型
+    config BOARD_TYPE_YUNLIAO_C3
+        bool "小智云聊C3"
+        depends on IDF_TARGET_ESP32C3
+    config BOARD_TYPE_YUNLIAO_S3
+        bool "小智云聊S3"
+        depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_BREAD_COMPACT_WIFI
         bool "Bread Compact WiFi (面包板)"
         depends on IDF_TARGET_ESP32S3
@@ -420,9 +426,6 @@ choice BOARD_TYPE
     config BOARD_TYPE_SURFER_C3_1_14TFT
         bool "Surfer-C3-1.14TFT"
         depends on IDF_TARGET_ESP32C3
-    config BOARD_TYPE_YUNLIAO_S3
-        bool "小智云聊-S3"
-        depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_WIRELESS_TAG_WTP4C5MP07S
         bool "Wireless-Tag WTP4C5MP07S"
         depends on IDF_TARGET_ESP32P4
@@ -674,6 +677,65 @@ config RECEIVE_CUSTOM_MESSAGE
     default n
     help
         Enable custom message reception, allow the device to receive custom messages from the server (preferably through the MQTT protocol)
+
+choice YUNLIAO_C3_VERSION
+    depends on BOARD_TYPE_YUNLIAO_C3
+    prompt "YUNLIAO VERSION"
+    default BOARD_TYPE_YUNLIAO_V2
+    help
+        版本
+    config BOARD_TYPE_YUNLIAO_V1
+        bool "V1"
+    config BOARD_TYPE_YUNLIAO_V2
+        bool "V2"
+endchoice
+
+config USE_WEATHER
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用天气功能"
+    default n
+    help
+        待机界面显示天气信息
+
+config USE_ALARM
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用闹钟功能"
+    default y
+    help
+        一个自定义的闹钟功能
+
+config USE_MUSIC
+    depends on BOARD_TYPE_YUNLIAO_S3
+    bool "启用音乐播放器功能"
+    default n
+    help
+        启用音乐播放器功能，允许播放在线音乐。需后台配置
+
+config USE_BLUETOOTH
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用蓝牙功能"
+    default n
+    help
+        启用蓝牙功能，允许连接外置蓝牙设备
+                
+config USE_NEWS
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用新闻功能"
+    default n
+    help
+        启用新闻功能，允许播放RSS新闻
+
+config WIFI_FACTORY_SSID
+    string "WiFi Factory SSID"
+    default ""
+    help
+        SSID (network name) 
+
+config WIFI_FACTORY_PASSWORD
+    string "WiFi Factory Password"
+    default ""
+    help
+        WiFi password (WPA or WPA2)
 
 menu "Camera Configuration"
     depends on !IDF_TARGET_ESP32
