@@ -36,6 +36,7 @@ public:
     void SetChatMessage(const char* role, const char* content) override; 
     void SetEmotion(const char* emotion) override;
     void ShowStandbyScreen(bool show) override;
+    void showHint() override;
 
     lv_timer_t *idle_timer_ = nullptr;
     lv_obj_t * tab_main = nullptr;
@@ -96,4 +97,4 @@ protected:
     void UpdateIdleScreen();
 };
 
-#endif // XIAOZIYUNLIAO_DISPLAY_H 
+#endif // XIAOZIYUNLIAO_DISPLAY_H

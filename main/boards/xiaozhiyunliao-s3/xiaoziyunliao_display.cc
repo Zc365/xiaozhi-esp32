@@ -608,6 +608,7 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
     lv_obj_set_style_pad_top(config_container_, 23, 0);
     lv_obj_set_style_flex_main_place(config_container_, LV_FLEX_ALIGN_CENTER, 0);
     lv_obj_set_style_flex_cross_place(config_container_, LV_FLEX_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_color(config_container_, lvgl_theme->text_color(), 0);
 
     uint8_t left_width =  170;
     uint8_t right_width = 140;
@@ -798,4 +799,24 @@ XiaoziyunliaoDisplay::~XiaoziyunliaoDisplay() {
 void XiaoziyunliaoDisplay::SetEmotion(const char* emotion) {
     DisplayLockGuard lock(this);
     LcdDisplay::SetEmotion(emotion);
+}
+
+void XiaoziyunliaoDisplay::showHint() {
+    DisplayLockGuard lock(this);
+    std::string helpMessage = Lang::Strings::HELP4;
+    helpMessage += "\n"; 
+    switch (Application::GetInstance().GetAecMode()) {
+        case kAecOff:
+            helpMessage += Lang::Strings::RTC_MODE_OFF;
+            break;
+        case kAecOnServerSide:
+        case kAecOnDeviceSide:
+            helpMessage += Lang::Strings::RTC_MODE_ON;
+            break;
+        }    
+    helpMessage += "\n"; 
+    helpMessage += Lang::Strings::HELP1;
+    helpMessage += "\n"; 
+    helpMessage += Lang::Strings::HELP2;
+    SpiLcdDisplay::SetChatMessage("system", helpMessage.c_str());
 }

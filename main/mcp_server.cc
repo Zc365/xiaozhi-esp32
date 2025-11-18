@@ -17,6 +17,26 @@
 #include "settings.h"
 #include "lvgl_theme.h"
 #include "lvgl_display.h"
+#if CONFIG_USE_ALARM
+    #include "AlarmClock.h"
+#endif
+#if CONFIG_USE_NEWS
+    #include "mcp_news_tools.h"
+#endif
+#if CONFIG_USE_WEATHER
+    #include "weather_forecast.h"
+#endif
+#if CONFIG_BOARD_TYPE_YUNLIAO_S3
+    #include "boards/xiaozhiyunliao-s3/xiaozhiyunliao_s3.h"
+    #include "boards/xiaozhiyunliao-s3/xiaoziyunliao_display.h"
+#endif
+#if CONFIG_BOARD_TYPE_YUNLIAO_C3
+    #include "boards/xiaozhiyunliao-c3/xiaozhiyunliao_c3.h"
+    #include "boards/xiaozhiyunliao-c3/xiaoziyunliao_display.h"
+#endif
+#if CONFIG_USE_MUSIC
+    #include "boards/common/esp32_music.h"
+#endif
 
 #define TAG "MCP"
 
@@ -119,6 +139,256 @@ void McpServer::AddCommonTools() {
                 return camera->Explain(question);
             });
     }
+#endif
+#if CONFIG_BOARD_TYPE_YUNLIAO_S3
+    #if CONFIG_USE_WEATHER
+    AddTool("self.screen.set_city",
+        "Set the city for weather forecast and return the actual city name used.\n"
+        "Args:\n"
+        "  `city_name`: The name of the city to set (e.g. \"北京\", \"上海市\")\n"
+        "Return:\n"
+        "  JSON object with success status and actual city name",
+        PropertyList({
+            Property("city_name", kPropertyTypeString)
+        }),
+        [](const PropertyList& properties) -> ReturnValue {
+            auto city_name = properties["city_name"].value<std::string>();
+            
+            WeatherInfo result = WeatherForecast::GetInstance().FindCity(
+                Board::GetInstance().GetNetwork()->CreateHttp(1), city_name, false);
+            
+            if (result.city_code == -1) {
+                return "{\"success\": false, \"message\": \"Failed to set city\"}";
+            }
+            Settings settings("display", true);
+            settings.SetBool("use_last", true);
+            settings.SetInt("city_code", result.city_code);
+            return "{\"success\": true, \"city\": \"" + result.city + "\"}";
+        });
+
+    #endif
+    // System control tools
+    AddTool("self.system.reconfigure_wifi",
+        "Reboot the device and enter WiFi configuration mode,Requires user confirmation before execution.",
+        PropertyList(), [](const PropertyList& properties) {
+            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            board1->ResetWifiConfiguration();
+            return true;
+        });
+
+    AddTool("self.system.power_off",
+        "Power off the device after 1-second delay,Requires user confirmation before execution.",
+        PropertyList(), [this](const PropertyList& properties) {
+            ESP_LOGI("McpTools", "Delaying power off for 1 seconds");
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            board1->Sleep();
+            return true;
+        });
+
+    AddTool("self.system.restart",
+        "Restart the device after 1-second delay,Requires user confirmation before execution.",
+        PropertyList(), [this](const PropertyList& properties) {
+            ESP_LOGI("McpTools", "Delaying restart for 1 seconds");
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            esp_restart();
+            return true;
+        });
+
+    // Existing display tools
+    AddTool("self.screen.show_help_page", 
+        "Switch to the help/configuration page. Use this when user needs to access device settings or help information.",
+        PropertyList(),
+        [this](const PropertyList& properties) -> ReturnValue {
+            auto display = Board::GetInstance().GetDisplay();
+            if (display) {
+                auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                lcd_display->SwitchPage(PageIndex::PAGE_CONFIG);
+            }
+            return true;
+        });
+
+    AddTool("self.screen.show_chat_page", 
+        "Switch to the main chat interface. Use this as the default view for normal conversation.",
+        PropertyList(),
+        [this](const PropertyList& properties) -> ReturnValue {
+            auto display = Board::GetInstance().GetDisplay();
+            if (display) {
+                auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                lcd_display->SwitchPage(PageIndex::PAGE_CHAT);
+            }
+            return true;
+        });
+#endif
+#if CONFIG_BOARD_TYPE_YUNLIAO_C3
+        // System control tools
+        AddTool("self.system.reconfigure_wifi",
+            "Reboot the device and enter WiFi configuration mode,Requires user confirmation before execution.",
+            PropertyList(), [](const PropertyList& properties) {
+                auto board1 = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                board1->ResetWifiConfiguration();
+                return true;
+            });
+
+        AddTool("self.system.power_off",
+            "Power off the device after 1-second delay,Requires user confirmation before execution.",
+            PropertyList(), [this](const PropertyList& properties) {
+                ESP_LOGI("McpTools", "Delaying power off for 1 seconds");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                auto board1 = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                board1->Sleep();
+                return true;
+            });
+
+        AddTool("self.system.restart",
+            "Restart the device after 1-second delay,Requires user confirmation before execution.",
+            PropertyList(), [this](const PropertyList& properties) {
+                ESP_LOGI("McpTools", "Delaying restart for 1 seconds");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                esp_restart();
+                return true;
+            });
+
+        // Existing display tools
+        AddTool("self.screen.show_help_page", 
+            "Switch to the help/configuration page. Use this when user needs to access device settings or help information.",
+            PropertyList(),
+            [this](const PropertyList& properties) -> ReturnValue {
+                auto display = Board::GetInstance().GetDisplay();
+                if (display) {
+                    auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                    lcd_display->SwitchPage(PageIndex::PAGE_CONFIG);
+                }
+                return true;
+            });
+
+        AddTool("self.screen.show_chat_page", 
+            "Switch to the main chat interface. Use this as the default view for normal conversation.",
+            PropertyList(),
+            [this](const PropertyList& properties) -> ReturnValue {
+                auto display = Board::GetInstance().GetDisplay();
+                if (display) {
+                    auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                    lcd_display->SwitchPage(PageIndex::PAGE_CHAT);
+                }
+                return true;
+            });
+#endif
+#if CONFIG_USE_ALARM
+    AddTool("self.alarm.set_Alarm",
+        "Set an alarm. The alarm will ring at the specified time.\n"
+        "Args:\n"
+        "  `time`: The time to set the alarm, in seconds from now.The accurate calculation of time is required.\n"
+        "  `name`: The name of the alarm.\n"
+        "Return:\n"
+        "  A JSON object that indicates whether the alarm is set successfully.",
+        PropertyList({
+            Property("time", kPropertyTypeInteger), // 1 second to 24 hours
+            Property("name", kPropertyTypeString)
+        }),
+        [](const PropertyList& properties) -> ReturnValue {
+            auto& app = Application::GetInstance();
+            if(app.alarm_m_ == nullptr){
+                ESP_LOGE(TAG, "AlarmManager is nullptr");
+                return "{\"success\": false, \"message\": \"AlarmManager is not initialized\"}";
+            }
+            ESP_LOGI(TAG, "SetAlarm");
+            int seconde_from_now = static_cast<int>(properties["time"].value<int>());
+            std::string alarm_name = properties["name"].value<std::string>();
+            return app.alarm_m_->SetAlarm(seconde_from_now, alarm_name);
+            // app.alarm_m_->SetAlarm(seconde_from_now, alarm_name);
+            // return "{\"success\": true, \"message\": \"Alarm set successfully\"}";
+        });
+#endif
+#if CONFIG_USE_MUSIC
+    auto music = board.GetMusic();
+    AddTool("self.music.play_song",
+        "播放指定的歌曲。当用户要求播放音乐时使用此工具，会自动获取歌曲详情并开始流式播放。\n"
+        "参数:\n"
+        "  `song_name`: 要播放的歌曲名称（必需）。\n"
+        "  `artist_name`: 要播放的歌曲艺术家名称（可选，默认为空字符串）。\n"
+        "返回:\n"
+        "  播放状态信息，不需确认，立刻播放歌曲。",
+        PropertyList({
+            Property("song_name", kPropertyTypeString),//歌曲名称（必需）
+            Property("artist_name", kPropertyTypeString, "")//艺术家名称（可选，默认为空字符串）
+        }),
+        [music](const PropertyList& properties) -> ReturnValue {
+            auto song_name = properties["song_name"].value<std::string>();
+            auto artist_name = properties["artist_name"].value<std::string>();
+            
+            if (!music->Download(song_name, artist_name)) {
+                return "{\"success\": false, \"message\": \"获取音乐资源失败\"}";
+            }
+            auto download_result = music->GetDownloadResult();
+            // ESP_LOGI(TAG, "Music details result: %s", download_result.c_str());
+            return "{\"success\": true, \"message\": \"音乐开始播放\"}";
+        });
+
+    AddTool("self.music.set_display_mode",
+        "设置音乐播放时的显示模式。可以选择显示频谱或歌词，比如用户说‘打开频谱’或者‘显示频谱’，‘打开歌词’或者‘显示歌词’就设置对应的显示模式。\n"
+        "参数:\n"
+        "  `mode`: 显示模式，可选值为 'spectrum'（频谱）或 'lyrics'（歌词）。\n"
+        "返回:\n"
+        "  设置结果信息。",
+        PropertyList({
+            Property("mode", kPropertyTypeString)//显示模式: "spectrum" 或 "lyrics"
+        }),
+        [music](const PropertyList& properties) -> ReturnValue {
+            auto mode_str = properties["mode"].value<std::string>();
+            
+            // 转换为小写以便比较
+            std::transform(mode_str.begin(), mode_str.end(), mode_str.begin(), ::tolower);
+            
+            if (mode_str == "spectrum" || mode_str == "频谱") {
+                // 设置为频谱显示模式
+                auto esp32_music = static_cast<Esp32Music*>(music);
+                esp32_music->SetDisplayMode(Esp32Music::DISPLAY_MODE_SPECTRUM);
+                return "{\"success\": true, \"message\": \"已切换到频谱显示模式\"}";
+            } else if (mode_str == "lyrics" || mode_str == "歌词") {
+                // 设置为歌词显示模式
+                auto esp32_music = static_cast<Esp32Music*>(music);
+                esp32_music->SetDisplayMode(Esp32Music::DISPLAY_MODE_LYRICS);
+                return "{\"success\": true, \"message\": \"已切换到歌词显示模式\"}";
+            } else {
+                return "{\"success\": false, \"message\": \"无效的显示模式，请使用 'spectrum' 或 'lyrics'\"}";
+            }
+            
+            return "{\"success\": false, \"message\": \"设置显示模式失败\"}";
+        });
+#endif
+#if CONFIG_USE_NEWS
+    AddNewsMcpTools();
+#endif
+#if CONFIG_USE_BLUETOOTH
+AddTool("self.system.switch_bluetooth",
+    "Switch Bluetooth on or off.\n"
+    "Args:\n"
+    "  `switch_on`: Boolean value to turn Bluetooth on (true) or off (false).\n"
+    "Return:\n"
+    "  A JSON object that provides the Bluetooth operation status and message.",
+    PropertyList({
+        Property("switch_on", kPropertyTypeBoolean)
+    }),
+    [&board](const PropertyList& properties) -> ReturnValue {
+        bool switch_on = properties["switch_on"].value<bool>();
+        auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+        XiaoZhiYunliaoS3::BT_STATUS bt_status = board1->SwitchBluetooth(switch_on);
+        ESP_LOGI(TAG, "SwitchBluetooth:%d", (int) bt_status);
+
+        // 根据状态码返回相应的JSON响应
+        switch (bt_status) {
+            case XiaoZhiYunliaoS3::BT_STATUS::SUCCESS:
+                return "{\"success\": true, \"message\": \"Bluetooth operation successful\"}";
+            case XiaoZhiYunliaoS3::BT_STATUS::ALREADY_STARTED:
+                return "{\"success\": false, \"message\": \"Bluetooth is already on\"}";
+            case XiaoZhiYunliaoS3::BT_STATUS::ALREADY_STOPPED:
+                return "{\"success\": false, \"message\": \"Bluetooth is already off\"}";
+            case XiaoZhiYunliaoS3::BT_STATUS::NO_BT_MODULE:
+                return "{\"success\": false, \"message\": \"No Bluetooth module installed\"}";
+        }
+        return "{\"success\": false, \"message\": \"Unknown error occurred\"}";
+    });
 #endif
 
     // Restore the original tools list to the end of the tools list

@@ -189,22 +189,6 @@ void XiaoZhiYunliaoS3::InitializeLCDDisplay() {
         DISPLAY_MIRROR_X, 
         DISPLAY_MIRROR_Y, 
         DISPLAY_SWAP_XY);
-        std::string helpMessage = Lang::Strings::HELP4;
-        helpMessage += "\n"; 
-        switch (Application::GetInstance().GetAecMode()) {
-            case kAecOff:
-                helpMessage += Lang::Strings::RTC_MODE_OFF;
-                break;
-            case kAecOnServerSide:
-            case kAecOnDeviceSide:
-                helpMessage += Lang::Strings::RTC_MODE_ON;
-                break;
-            }    
-        helpMessage += "\n"; 
-        helpMessage += Lang::Strings::HELP1;
-        helpMessage += "\n"; 
-        helpMessage += Lang::Strings::HELP2;
-        display_->SetChatMessage("system", helpMessage.c_str());
 }
 
 void XiaoZhiYunliaoS3::InitializeI2c() {

@@ -12,6 +12,9 @@ enum DeviceState {
     kDeviceStateUpgrading,
     kDeviceStateActivating,
     kDeviceStateAudioTesting,
+#if CONFIG_USE_ALARM
+    kDeviceStateAlarm,
+#endif
     kDeviceStateFatalError
 };
 

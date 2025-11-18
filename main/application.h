@@ -15,6 +15,10 @@
 #include "ota.h"
 #include "audio_service.h"
 #include "device_state_event.h"
+#if CONFIG_USE_ALARM
+    #include "AlarmClock.h"
+    #define MAIN_EVENT_ALARM (1 << 7)
+#endif
 
 
 #define MAIN_EVENT_SCHEDULE (1 << 0)
@@ -61,6 +65,11 @@ public:
     void SendMcpMessage(const std::string& payload);
     void SetAecMode(AecMode mode);
     AecMode GetAecMode() const { return aec_mode_; }
+#if CONFIG_USE_ALARM
+    AlarmManager* alarm_m_ = nullptr;
+    void SetAlarmEvent();
+    void ClearAlarmEvent();
+#endif
     void PlaySound(const std::string_view& sound);
     AudioService& GetAudioService() { return audio_service_; }
 

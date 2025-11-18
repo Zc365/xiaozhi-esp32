@@ -52,6 +52,7 @@ public:
     virtual void ShowBT(bool show);
 #endif
     virtual void ShowStandbyScreen(bool show){};
+    virtual void showHint(){};
 
 protected:
     int width_ = 0;

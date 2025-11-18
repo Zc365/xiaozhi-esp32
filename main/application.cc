@@ -31,6 +31,9 @@ static const char* const STATE_STRINGS[] = {
     "upgrading",
     "activating",
     "audio_testing",
+#if CONFIG_USE_ALARM
+    "alarm",
+#endif
     "fatal_error",
     "invalid_state"
 };
@@ -116,8 +119,9 @@ void Application::CheckAssetsVersion() {
 
     // Apply assets
     assets.Apply();
-    display->SetChatMessage("system", "");
-    display->SetEmotion("microchip_ai");
+    display->showHint();
+    // display->SetChatMessage("system", "");
+    // display->SetEmotion("microchip_ai");
 }
 
 void Application::CheckNewVersion(Ota& ota) {
@@ -249,14 +253,14 @@ void Application::ToggleChatState() {
     if (device_state_ == kDeviceStateActivating) {
         SetDeviceState(kDeviceStateIdle);
         return;
-    } else if (device_state_ == kDeviceStateWifiConfiguring) {
-        audio_service_.EnableAudioTesting(true);
-        SetDeviceState(kDeviceStateAudioTesting);
-        return;
-    } else if (device_state_ == kDeviceStateAudioTesting) {
-        audio_service_.EnableAudioTesting(false);
-        SetDeviceState(kDeviceStateWifiConfiguring);
-        return;
+    // } else if (device_state_ == kDeviceStateWifiConfiguring) {
+    //     audio_service_.EnableAudioTesting(true);
+    //     SetDeviceState(kDeviceStateAudioTesting);
+    //     return;
+    // } else if (device_state_ == kDeviceStateAudioTesting) {
+    //     audio_service_.EnableAudioTesting(false);
+    //     SetDeviceState(kDeviceStateWifiConfiguring);
+    //     return;
     }
 
     if (!protocol_) {
@@ -284,6 +288,13 @@ void Application::ToggleChatState() {
             protocol_->CloseAudioChannel();
         });
     }
+#if CONFIG_USE_ALARM
+    else if (device_state_ == kDeviceStateAlarm) {
+        alarm_m_->ClearRing();
+        ESP_LOGI(TAG, "Alarm cleared Toggle");
+        SetDeviceState(kDeviceStateIdle);
+    }
+#endif
 }
 
 void Application::StartListening() {
@@ -353,7 +364,7 @@ void Application::Start() {
     auto display = board.GetDisplay();
 
     // Print board name/version info
-    // display->SetChatMessage("system", SystemInfo::GetUserAgent().c_str());
+    display->SetChatMessage("system", SystemInfo::GetUserAgent().c_str());
 
     /* Setup the audio service */
     auto codec = board.GetAudioCodec();
@@ -436,6 +447,9 @@ void Application::Start() {
         Schedule([this]() {
             auto display = Board::GetInstance().GetDisplay();
             display->SetChatMessage("system", "");
+#if CONFIG_USE_ALARM
+            if(device_state_ != kDeviceStateAlarm)
+#endif
             SetDeviceState(kDeviceStateIdle);
         });
     });
@@ -537,10 +551,29 @@ void Application::Start() {
     if (protocol_started) {
         std::string message = std::string(Lang::Strings::VERSION) + ota.GetCurrentVersion();
         display->ShowNotification(message.c_str());
-        display->SetChatMessage("system", "");
+        // display->SetChatMessage("system", "");
         // Play the success sound to indicate the device is ready
         audio_service_.PlaySound(Lang::Sounds::OGG_SUCCESS);
     }
+#if CONFIG_USE_ALARM
+    if (!alarm_m_) { // 确保alarm_m_未初始化
+        int retry_count = 0;
+        while(!ota.HasServerTime()){
+            retry_count++;
+            vTaskDelay(pdMS_TO_TICKS(100));
+            if(retry_count >= 60){
+                ESP_LOGW(TAG, "Failed to get server time, exit alarm manager");
+                break;
+            }
+        }
+        if (retry_count < 60){
+            ESP_LOGI(TAG, "Server time synchronized, start alarm manager");
+            alarm_m_ = new AlarmManager();
+        }else{
+            ESP_LOGW(TAG, "AlarmManager init failed: No server time");
+        }
+    }
+#endif
 }
 
 // Add a async task to MainLoop
@@ -561,6 +594,9 @@ void Application::MainEventLoop() {
             MAIN_EVENT_SEND_AUDIO |
             MAIN_EVENT_WAKE_WORD_DETECTED |
             MAIN_EVENT_VAD_CHANGE |
+#if CONFIG_USE_ALARM
+            MAIN_EVENT_ALARM | 
+#endif
             MAIN_EVENT_CLOCK_TICK |
             MAIN_EVENT_ERROR, pdTRUE, pdFALSE, portMAX_DELAY);
 
@@ -608,7 +644,50 @@ void Application::MainEventLoop() {
                 // SystemInfo::PrintTaskList();
                 SystemInfo::PrintHeapStats();
             }
+#if CONFIG_USE_ALARM
+            if (alarm_m_) { // 每秒检查
+                alarm_m_->CheckAlarms(time(NULL));
+                if(alarm_m_->IsRing()){
+                    if(alarm_m_->DelaySecond > 0){
+                        alarm_m_->DelaySecond --;
+                    }else{
+                        SetAlarmEvent();//循环播放
+                    }
+                }
+            }
+#endif
         }
+
+#if CONFIG_USE_ALARM
+        if(alarm_m_ != nullptr && (bits & MAIN_EVENT_ALARM)){
+            if(alarm_m_->IsRing()){
+                if(device_state_ != kDeviceStateAlarm){
+                    if (device_state_ == kDeviceStateActivating) {
+                        Reboot();
+                        return;
+                    } else if (device_state_ == kDeviceStateSpeaking) {
+                        ESP_LOGI(TAG, "Alarm ring, abort speaking");
+                        AbortSpeaking(kAbortReasonNone);
+                        protocol_->CloseAudioChannel();
+                        aborted_ = false; // 不停止本地的播放
+                    } else if (device_state_ == kDeviceStateListening) {
+                        ESP_LOGI(TAG, "Alarm ring, close audio channel");
+                        protocol_->CloseAudioChannel();
+                    }
+                    ESP_LOGI(TAG, "Alarm ring, begin status %d", device_state_);
+                    SetDeviceState(kDeviceStateAlarm); //强制设置为播放模式
+                    auto display = Board::GetInstance().GetDisplay();
+                    display->SetChatMessage("system", "");
+                    display->SetEmotion("bell");
+                }
+                if(audio_service_.audio_decode_queue_.empty()){
+                    audio_service_.PlaySound(Lang::Sounds::OGG_ALARM_RING);
+                }
+                alarm_m_->DelaySecond = 3;
+            }
+        }
+#endif
+
     }
 }
 
@@ -677,6 +756,9 @@ void Application::SetDeviceState(DeviceState state) {
     DeviceStateEventManager::GetInstance().PostStateChangeEvent(previous_state, state);
 
     auto& board = Board::GetInstance();
+#if CONFIG_USE_ALARM
+    auto codec = board.GetAudioCodec();
+#endif
     auto display = board.GetDisplay();
     auto led = board.GetLed();
     led->OnStateChanged();
@@ -715,6 +797,12 @@ void Application::SetDeviceState(DeviceState state) {
             }
             audio_service_.ResetDecoder();
             break;
+#if CONFIG_USE_ALARM
+        case kDeviceStateAlarm:
+            audio_service_.ResetDecoder();
+            codec->EnableOutput(true);
+            break;
+#endif
         default:
             // Do nothing
             break;
@@ -892,3 +980,12 @@ void Application::SetAecMode(AecMode mode) {
 void Application::PlaySound(const std::string_view& sound) {
     audio_service_.PlaySound(sound);
 }
+#if CONFIG_USE_ALARM
+    void Application::SetAlarmEvent(){
+        xEventGroupSetBits(event_group_, MAIN_EVENT_ALARM);
+    }
+
+    void Application::ClearAlarmEvent(){
+        xEventGroupClearBits(event_group_, MAIN_EVENT_ALARM);
+    }
+#endif
