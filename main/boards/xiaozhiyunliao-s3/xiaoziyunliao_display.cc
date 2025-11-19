@@ -59,78 +59,11 @@ XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
                 mirror_x, mirror_y,
                 swap_xy){
         SetupUI();
-        // SetLogo(Lang::Strings::LOGO);
 }
 
 void XiaoziyunliaoDisplay::SetupUI() {
+    DisplayLockGuard lock(this);
     LcdDisplay::SetupUI();
-//     DisplayLockGuard lock(this);
-
-//     auto screen = lv_screen_active();
-//     lv_obj_set_style_text_font(screen, fonts_.text_font, 0);
-//     lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
-    
-
-//     /* Container */
-//     container_ = lv_obj_create(screen);
-//     lv_obj_set_size(container_, LV_HOR_RES, LV_VER_RES);
-//     lv_obj_set_flex_flow(container_, LV_FLEX_FLOW_COLUMN);
-//     lv_obj_set_style_pad_all(container_, 0, 0);
-//     lv_obj_set_style_border_width(container_, 0, 0);
-//     lv_obj_set_style_pad_row(container_, 0, 0);
-
-//     /* Status bar */
-//     status_bar_ = lv_obj_create(container_);
-//     lv_obj_set_size(status_bar_, LV_HOR_RES, fonts_.text_font->line_height);
-//     lv_obj_set_style_radius(status_bar_, 0, 0);
-//     lv_obj_set_style_text_color(status_bar_, lv_color_make(0xAf, 0xAf, 0xAf), 0);
-//     lv_obj_set_style_bg_color(status_bar_, lv_color_black(), 0);
-    
-//     /* Status bar */
-//     lv_obj_set_flex_flow(status_bar_, LV_FLEX_FLOW_ROW);
-//     lv_obj_set_style_pad_all(status_bar_, 0, 0);
-//     lv_obj_set_style_border_width(status_bar_, 0, 0);
-//     lv_obj_set_style_pad_column(status_bar_, 0, 0);
-//     lv_obj_set_style_pad_left(status_bar_, 2, 0);
-//     lv_obj_set_style_pad_right(status_bar_, 2, 0);
-
-//     logo_label_ = lv_label_create(status_bar_);
-//     lv_label_set_text(logo_label_, "");
-//     lv_obj_set_style_text_font(logo_label_, fonts_.text_font, 0);
-
-//     notification_label_ = lv_label_create(status_bar_);
-//     lv_obj_set_flex_grow(notification_label_, 1);
-//     lv_obj_set_style_text_align(notification_label_, LV_TEXT_ALIGN_CENTER, 0);
-//     lv_label_set_text(notification_label_, "");
-//     lv_obj_add_flag(notification_label_, LV_OBJ_FLAG_HIDDEN);
-
-//     status_label_ = lv_label_create(status_bar_);
-//     lv_obj_set_flex_grow(status_label_, 1);
-//     lv_label_set_long_mode(status_label_, LV_LABEL_LONG_SCROLL_CIRCULAR);
-//     lv_obj_set_style_text_align(status_label_, LV_TEXT_ALIGN_CENTER, 0);
-//     lv_label_set_text(status_label_, Lang::Strings::INITIALIZING);
-
-//     mute_label_ = lv_label_create(status_bar_);
-//     lv_label_set_text(mute_label_, "");
-//     lv_obj_set_style_text_font(mute_label_, fonts_.icon_font, 0);
-
-// #if CONFIG_USE_BLUETOOTH
-//     bt_label_ = lv_label_create(status_bar_);
-//     lv_label_set_text(bt_label_, FONT_AWESOME_BLUETOOTH);
-//     lv_obj_set_style_text_font(bt_label_, fonts_.icon_font, 0);
-//     lv_obj_add_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
-// #endif
-   
-//     network_label_ = lv_label_create(status_bar_);
-//     lv_label_set_text(network_label_, "");
-//     lv_obj_set_style_text_font(network_label_, fonts_.icon_font, 0);
-//     lv_obj_set_style_pad_left(network_label_, 3, 0);
-
-//     battery_label_ = lv_label_create(status_bar_);
-//     lv_label_set_text(battery_label_, "");
-//     lv_obj_set_style_text_font(battery_label_, fonts_.icon_font, 0);
-//     lv_obj_set_style_pad_left(battery_label_, 3, 0);
-//     lv_obj_add_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
 
 //     // 创建tabview，填充整个屏幕
 //     tabview_ = lv_tabview_create(lv_scr_act());
@@ -587,13 +520,6 @@ void XiaoziyunliaoDisplay::HideSmartConfigPage() {
     }
 }
 
-void XiaoziyunliaoDisplay::SetLogo(const char* logo) {
-    DisplayLockGuard lock(this);
-    if (logo_label_ && logo) {
-        lv_label_set_text(logo_label_, logo);
-    }
-}
-
 void XiaoziyunliaoDisplay::NewConfigPage() {
     DisplayLockGuard lock(this);
     DelConfigPage();
@@ -762,23 +688,6 @@ bool XiaoziyunliaoDisplay::isWifiConfigStatus() const {
     return current_status_ == Lang::Strings::WIFI_CONFIG_MODE;
 }
 
-void XiaoziyunliaoDisplay::UpdateStatusBar(bool update_all) {
-    // auto& board = Board::GetInstance();
-    // int battery_level;
-    // bool charging, discharging;
-    
-    // DisplayLockGuard lock(this);
-    // // 添加电池标签显示逻辑
-    // if (battery_label_ && lv_obj_has_flag(battery_label_, LV_OBJ_FLAG_HIDDEN)
-    //     && board.GetBatteryLevel(battery_level, charging, discharging) 
-    //     && battery_level > 0) {
-    //     lv_obj_remove_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
-    // }
-    
-    // 调用基类实现
-    SpiLcdDisplay::UpdateStatusBar(update_all);
-}
-
 XiaoziyunliaoDisplay::~XiaoziyunliaoDisplay() {
     DisplayLockGuard lock(this);
     current_status_.clear();
@@ -801,8 +710,14 @@ void XiaoziyunliaoDisplay::SetEmotion(const char* emotion) {
     LcdDisplay::SetEmotion(emotion);
 }
 
-void XiaoziyunliaoDisplay::showHint() {
+void XiaoziyunliaoDisplay::showUI() {
     DisplayLockGuard lock(this);
+    if (logo_label_) {
+        lv_label_set_text(logo_label_, Lang::Strings::LOGO);
+    }
+#if CONFIG_USE_BLUETOOTH
+    lv_label_set_text(bt_label_, FONT_AWESOME_BLUETOOTH);
+#endif
     std::string helpMessage = Lang::Strings::HELP4;
     helpMessage += "\n"; 
     switch (Application::GetInstance().GetAecMode()) {

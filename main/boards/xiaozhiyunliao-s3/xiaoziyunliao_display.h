@@ -31,12 +31,11 @@ public:
     ~XiaoziyunliaoDisplay() override;
 
     void SetupUI() override;
-    void SetLogo(const char* logo);
     void SetStatus(const char* status) override;
     void SetChatMessage(const char* role, const char* content) override; 
     void SetEmotion(const char* emotion) override;
     void ShowStandbyScreen(bool show) override;
-    void showHint() override;
+    void showUI() override;
 
     lv_timer_t *idle_timer_ = nullptr;
     lv_obj_t * tab_main = nullptr;
@@ -59,7 +58,6 @@ public:
     bool isWifiConfigStatus() const;
     const std::string& GetCurrentStatus() const { return current_status_; }
 protected:
-    lv_obj_t *logo_label_ = nullptr;
     lv_obj_t* chat_container_ = nullptr;
     lv_obj_t* config_container_ = nullptr;
     lv_obj_t* config_text_panel_ = nullptr;
@@ -92,7 +90,6 @@ protected:
     std::mutex status_mutex_;
     std::string current_status_ = "";
     bool idle_timer_created_ = false;
-    void UpdateStatusBar(bool update_all = false) override;
     static void UpdateIdleScreenCallback(lv_timer_t* t); 
     void UpdateIdleScreen();
 };

@@ -119,7 +119,7 @@ void Application::CheckAssetsVersion() {
 
     // Apply assets
     assets.Apply();
-    display->showHint();
+    display->showUI();
     // display->SetChatMessage("system", "");
     // display->SetEmotion("microchip_ai");
 }

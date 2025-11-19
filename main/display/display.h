@@ -52,7 +52,7 @@ public:
     virtual void ShowBT(bool show);
 #endif
     virtual void ShowStandbyScreen(bool show){};
-    virtual void showHint(){};
+    virtual void showUI(){};
 
 protected:
     int width_ = 0;
@@ -64,6 +64,7 @@ protected:
     lv_obj_t *emotion_label_ = nullptr;
     lv_obj_t *network_label_ = nullptr;
     lv_obj_t *status_label_ = nullptr;
+    lv_obj_t *logo_label_ = nullptr;
     lv_obj_t *notification_label_ = nullptr;
     lv_obj_t *mute_label_ = nullptr;
 #if CONFIG_USE_BLUETOOTH

@@ -516,18 +516,19 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_text_font(battery_label_, icon_font, 0);
     lv_obj_set_style_text_color(battery_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_margin_left(battery_label_, lvgl_theme->spacing(2), 0); // 添加左边距，与前面的元素分隔
+    lv_obj_add_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
 
-    low_battery_popup_ = lv_obj_create(screen);
-    lv_obj_set_scrollbar_mode(low_battery_popup_, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_set_size(low_battery_popup_, LV_HOR_RES * 0.9, text_font->line_height * 2);
-    lv_obj_align(low_battery_popup_, LV_ALIGN_BOTTOM_MID, 0, -lvgl_theme->spacing(4));
-    lv_obj_set_style_bg_color(low_battery_popup_, lvgl_theme->low_battery_color(), 0);
-    lv_obj_set_style_radius(low_battery_popup_, lvgl_theme->spacing(4), 0);
-    low_battery_label_ = lv_label_create(low_battery_popup_);
-    lv_label_set_text(low_battery_label_, Lang::Strings::BATTERY_NEED_CHARGE);
-    lv_obj_set_style_text_color(low_battery_label_, lv_color_white(), 0);
-    lv_obj_center(low_battery_label_);
-    lv_obj_add_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN);
+    // low_battery_popup_ = lv_obj_create(screen);
+    // lv_obj_set_scrollbar_mode(low_battery_popup_, LV_SCROLLBAR_MODE_OFF);
+    // lv_obj_set_size(low_battery_popup_, LV_HOR_RES * 0.9, text_font->line_height * 2);
+    // lv_obj_align(low_battery_popup_, LV_ALIGN_BOTTOM_MID, 0, -lvgl_theme->spacing(4));
+    // lv_obj_set_style_bg_color(low_battery_popup_, lvgl_theme->low_battery_color(), 0);
+    // lv_obj_set_style_radius(low_battery_popup_, lvgl_theme->spacing(4), 0);
+    // low_battery_label_ = lv_label_create(low_battery_popup_);
+    // lv_label_set_text(low_battery_label_, Lang::Strings::BATTERY_NEED_CHARGE);
+    // lv_obj_set_style_text_color(low_battery_label_, lv_color_white(), 0);
+    // lv_obj_center(low_battery_label_);
+    // lv_obj_add_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN);
 
     emoji_image_ = lv_img_create(screen);
     lv_obj_align(emoji_image_, LV_ALIGN_TOP_MID, 0, text_font->line_height + lvgl_theme->spacing(8));
@@ -900,10 +901,9 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_text_color(chat_message_label_, lvgl_theme->text_color(), 0);
 
     /* Status bar */
-    network_label_ = lv_label_create(status_bar_);
-    lv_label_set_text(network_label_, "");
-    lv_obj_set_style_text_font(network_label_, icon_font, 0);
-    lv_obj_set_style_text_color(network_label_, lvgl_theme->text_color(), 0);
+    logo_label_ = lv_label_create(status_bar_);
+    lv_label_set_text(logo_label_, "");
+    lv_obj_set_style_text_color(logo_label_, lvgl_theme->text_color(), 0);
 
     notification_label_ = lv_label_create(status_bar_);
     lv_obj_set_flex_grow(notification_label_, 1);
@@ -924,23 +924,36 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_text_font(mute_label_, icon_font, 0);
     lv_obj_set_style_text_color(mute_label_, lvgl_theme->text_color(), 0);
 
+#if CONFIG_USE_BLUETOOTH
+    bt_label_ = lv_label_create(status_bar_);
+    lv_obj_set_style_text_font(bt_label_, icon_font, 0);
+    lv_obj_add_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
+#endif
+   
+    network_label_ = lv_label_create(status_bar_);
+    lv_label_set_text(network_label_, "");
+    lv_obj_set_style_text_font(network_label_, icon_font, 0);
+    lv_obj_set_style_text_color(network_label_, lvgl_theme->text_color(), 0);
+    lv_obj_set_style_pad_left(network_label_, 3, 0);
+
     battery_label_ = lv_label_create(status_bar_);
     lv_label_set_text(battery_label_, "");
     lv_obj_set_style_text_font(battery_label_, icon_font, 0);
     lv_obj_set_style_text_color(battery_label_, lvgl_theme->text_color(), 0);
+    lv_obj_add_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
 
-    low_battery_popup_ = lv_obj_create(screen);
-    lv_obj_set_scrollbar_mode(low_battery_popup_, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_set_size(low_battery_popup_, LV_HOR_RES * 0.9, text_font->line_height * 2);
-    lv_obj_align(low_battery_popup_, LV_ALIGN_BOTTOM_MID, 0, -lvgl_theme->spacing(4));
-    lv_obj_set_style_bg_color(low_battery_popup_, lvgl_theme->low_battery_color(), 0);
-    lv_obj_set_style_radius(low_battery_popup_, lvgl_theme->spacing(4), 0);
+    // low_battery_popup_ = lv_obj_create(screen);
+    // lv_obj_set_scrollbar_mode(low_battery_popup_, LV_SCROLLBAR_MODE_OFF);
+    // lv_obj_set_size(low_battery_popup_, LV_HOR_RES * 0.9, text_font->line_height * 2);
+    // lv_obj_align(low_battery_popup_, LV_ALIGN_BOTTOM_MID, 0, -lvgl_theme->spacing(4));
+    // lv_obj_set_style_bg_color(low_battery_popup_, lvgl_theme->low_battery_color(), 0);
+    // lv_obj_set_style_radius(low_battery_popup_, lvgl_theme->spacing(4), 0);
     
-    low_battery_label_ = lv_label_create(low_battery_popup_);
-    lv_label_set_text(low_battery_label_, Lang::Strings::BATTERY_NEED_CHARGE);
-    lv_obj_set_style_text_color(low_battery_label_, lv_color_white(), 0);
-    lv_obj_center(low_battery_label_);
-    lv_obj_add_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN);
+    // low_battery_label_ = lv_label_create(low_battery_popup_);
+    // lv_label_set_text(low_battery_label_, Lang::Strings::BATTERY_NEED_CHARGE);
+    // lv_obj_set_style_text_color(low_battery_label_, lv_color_white(), 0);
+    // lv_obj_center(low_battery_label_);
+    // lv_obj_add_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN);
 }
 
 void LcdDisplay::SetPreviewImage(std::unique_ptr<LvglImage> image) {
@@ -1100,6 +1113,7 @@ void LcdDisplay::SetTheme(Theme* theme) {
     lv_obj_set_style_bg_color(status_bar_, lvgl_theme->background_color(), 0);
     
     // Update status bar elements
+    lv_obj_set_style_text_color(logo_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(network_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(status_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(notification_label_, lvgl_theme->text_color(), 0);
@@ -1188,7 +1202,7 @@ void LcdDisplay::SetTheme(Theme* theme) {
 #endif
     
     // Update low battery popup
-    lv_obj_set_style_bg_color(low_battery_popup_, lvgl_theme->low_battery_color(), 0);
+    // lv_obj_set_style_bg_color(low_battery_popup_, lvgl_theme->low_battery_color(), 0);
 
     // No errors occurred. Save theme to settings
     Display::SetTheme(lvgl_theme);

@@ -61,9 +61,9 @@ LvglDisplay::~LvglDisplay() {
     if (battery_label_ != nullptr) {
         lv_obj_del(battery_label_);
     }
-    if( low_battery_popup_ != nullptr ) {
-        lv_obj_del(low_battery_popup_);
-    }
+    // if( low_battery_popup_ != nullptr ) {
+    //     lv_obj_del(low_battery_popup_);
+    // }
     if (pm_lock_ != nullptr) {
         esp_pm_lock_delete(pm_lock_);
     }
@@ -159,24 +159,28 @@ void LvglDisplay::UpdateStatusBar(bool update_all) {
             icon = levels[battery_level / 20];
         }
         DisplayLockGuard lock(this);
-        if (battery_label_ != nullptr && battery_icon_ != icon) {
+        // 添加电池标签显示逻辑
+        if (battery_label_ && lv_obj_has_flag(battery_label_, LV_OBJ_FLAG_HIDDEN) && battery_level > 0) {
+            lv_obj_remove_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (battery_label_ && battery_icon_ != icon) {
             battery_icon_ = icon;
             lv_label_set_text(battery_label_, battery_icon_);
         }
 
-        if (low_battery_popup_ != nullptr) {
-            if (strcmp(icon, FONT_AWESOME_BATTERY_EMPTY) == 0 && discharging) {
-                if (lv_obj_has_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN)) { // 如果低电量提示框隐藏，则显示
-                    lv_obj_remove_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN);
-                    app.PlaySound(Lang::Sounds::OGG_LOW_BATTERY);
-                }
-            } else {
-                // Hide the low battery popup when the battery is not empty
-                if (!lv_obj_has_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN)) { // 如果低电量提示框显示，则隐藏
-                    lv_obj_add_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN);
-                }
-            }
-        }
+        // if (low_battery_popup_ != nullptr) {
+        //     if (strcmp(icon, FONT_AWESOME_BATTERY_EMPTY) == 0 && discharging) {
+        //         if (lv_obj_has_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN)) { // 如果低电量提示框隐藏，则显示
+        //             lv_obj_remove_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN);
+        //             app.PlaySound(Lang::Sounds::OGG_LOW_BATTERY);
+        //         }
+        //     } else {
+        //         // Hide the low battery popup when the battery is not empty
+        //         if (!lv_obj_has_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN)) { // 如果低电量提示框显示，则隐藏
+        //             lv_obj_add_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN);
+        //         }
+        //     }
+        // }
     }
 
     // 每 10 秒更新一次网络图标
