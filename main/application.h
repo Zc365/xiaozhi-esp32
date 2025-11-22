@@ -70,6 +70,9 @@ public:
     void SetAlarmEvent();
     void ClearAlarmEvent();
 #endif
+#if CONFIG_USE_MUSIC
+    void AddAudioData(AudioStreamPacket&& packet);
+#endif
     void PlaySound(const std::string_view& sound);
     AudioService& GetAudioService() { return audio_service_; }
 

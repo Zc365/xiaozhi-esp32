@@ -17,6 +17,11 @@
 
 #define TAG "AudioService"
 
+#if CONFIG_USE_MUSIC
+void AudioService::UpdateOutputTimestamp() {
+    last_output_time_ = std::chrono::steady_clock::now();
+}
+#endif
 
 AudioService::AudioService() {
     event_group_ = xEventGroupCreate();

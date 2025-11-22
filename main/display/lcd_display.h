@@ -70,7 +70,6 @@ protected:
     void compute(float* real, float* imag, int n, bool forward);
     // 添加缺少的方法声明
     void drawSpectrumIfReady();
-    void MyUI();
 #endif
 
 protected:

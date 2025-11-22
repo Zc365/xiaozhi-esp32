@@ -1611,47 +1611,6 @@ void LcdDisplay::SetMusicInfo(const char* song_name) {
         ESP_LOGI(TAG, "FFT display stopped, original UI restored");
     }
     
-    void LcdDisplay::MyUI(){
-    
-        DisplayLockGuard lock(this);
-    
-        auto screen = lv_screen_active();
-        lv_obj_set_style_text_font(screen, fonts_.text_font, 0);
-        lv_obj_set_style_text_color(screen, lv_color_white(), 0);
-        lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
-    
-        /* Container */
-        container_ = lv_obj_create(screen);
-        lv_obj_set_size(container_, LV_HOR_RES, LV_VER_RES);
-        lv_obj_set_flex_flow(container_, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_style_pad_all(container_, 0, 0);
-        lv_obj_set_style_border_width(container_, 0, 0);
-        lv_obj_set_style_pad_row(container_, 0, 0);
-        lv_obj_set_style_bg_color(container_, lv_color_black(), 0);
-        lv_obj_set_style_border_color(container_, lv_color_white(), 0);
-        
-      
-        /* Status bar */
-        status_bar_ = lv_obj_create(container_);
-        lv_obj_set_size(status_bar_, LV_HOR_RES, fonts_.text_font->line_height);
-        lv_obj_set_style_radius(status_bar_, 0, 0);
-        lv_obj_set_style_bg_color(status_bar_, lv_color_black(), 0);
-        lv_obj_set_style_text_color(status_bar_, lv_color_white(), 0);
-    
-        /* Status bar */
-        lv_obj_set_flex_flow(status_bar_, LV_FLEX_FLOW_ROW);
-        lv_obj_set_style_pad_all(status_bar_, 0, 0);
-        lv_obj_set_style_border_width(status_bar_, 0, 0);
-        lv_obj_set_style_pad_column(status_bar_, 0, 0);
-        lv_obj_set_style_pad_left(status_bar_, 2, 0);
-        lv_obj_set_style_pad_right(status_bar_, 2, 0);
-      
-        
-    
-    
-       
-    
-    }
     
     
     void LcdDisplay::compute(float* real, float* imag, int n, bool forward) {

@@ -28,6 +28,10 @@ public:
     virtual bool InputData(std::vector<int16_t>& data);
     virtual void Start();
 
+#if CONFIG_USE_MUSIC
+    virtual bool SetOutputSampleRate(int sample_rate);
+    inline int original_output_sample_rate() const { return original_output_sample_rate_; }
+#endif
     inline bool duplex() const { return duplex_; }
     inline bool input_reference() const { return input_reference_; }
     inline int input_sample_rate() const { return input_sample_rate_; }
@@ -43,6 +47,9 @@ protected:
     i2s_chan_handle_t tx_handle_ = nullptr;
     i2s_chan_handle_t rx_handle_ = nullptr;
 
+#if CONFIG_USE_MUSIC
+    int original_output_sample_rate_ = 0;
+#endif
     bool duplex_ = false;
     bool input_reference_ = false;
     bool input_enabled_ = false;

@@ -83,6 +83,9 @@ class AudioService {
 public:
     AudioService();
     ~AudioService();
+#if CONFIG_USE_MUSIC
+    void UpdateOutputTimestamp();
+#endif
 
     void Initialize(AudioCodec* codec);
     void Start();

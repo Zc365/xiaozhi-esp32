@@ -50,6 +50,7 @@ private:
     std::atomic<DisplayMode> display_mode_;
     std::atomic<bool> is_playing_;
     std::atomic<bool> is_downloading_;
+    std::atomic<bool> is_paused_;
     std::thread play_thread_;
     std::thread download_thread_;
     int64_t current_play_time_ms_;  // 当前播放时间(毫秒)
@@ -94,7 +95,6 @@ public:
 
     virtual bool Download(const std::string& song_name, const std::string& artist_name) override;
   
-								 
     virtual std::string GetDownloadResult() override;
     
     // 新增方法

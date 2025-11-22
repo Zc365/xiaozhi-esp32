@@ -29,4 +29,5 @@ extern "C" void app_main(void)
     // Launch the application
     auto& app = Application::GetInstance();
     app.Start();
+    app.MainEventLoop();
 }
