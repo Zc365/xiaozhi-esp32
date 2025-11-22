@@ -99,7 +99,6 @@ void LvglDisplay::ShowNotification(const char* notification, int duration_ms) {
 }
 
 void LvglDisplay::UpdateStatusBar(bool update_all) {
-    auto& app = Application::GetInstance();
     auto& board = Board::GetInstance();
     auto codec = board.GetAudioCodec();
 
@@ -122,6 +121,7 @@ void LvglDisplay::UpdateStatusBar(bool update_all) {
 
 #ifndef CONFIG_BOARD_TYPE_YUNLIAO_S3
     // Update time
+    auto& app = Application::GetInstance();
     if (app.GetDeviceState() == kDeviceStateIdle) {
         if (last_status_update_time_ + std::chrono::seconds(10) < std::chrono::system_clock::now()) {
             // Set status to clock "HH:MM"

@@ -127,10 +127,10 @@ bool AudioCodec::SetOutputSampleRate(int sample_rate) {
     ESP_LOGI(TAG, "Changing output sample rate from %d to %d Hz", output_sample_rate_, sample_rate);
     
     // 先尝试禁用 I2S 通道（如果已启用的话）
-    bool was_enabled = false;
+    // bool was_enabled = false;
     esp_err_t disable_ret = i2s_channel_disable(tx_handle_);
     if (disable_ret == ESP_OK) {
-        was_enabled = true;
+        // was_enabled = true;
         ESP_LOGI(TAG, "Disabled I2S TX channel for reconfiguration");
     } else if (disable_ret == ESP_ERR_INVALID_STATE) {
         // 通道可能已经是禁用状态，这是正常的

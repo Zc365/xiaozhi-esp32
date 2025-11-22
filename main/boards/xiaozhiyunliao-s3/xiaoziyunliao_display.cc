@@ -288,7 +288,7 @@ void XiaoziyunliaoDisplay::UpdateIdleScreen() {
     time(&now);
     localtime_r(&now, &timeinfo);
     
-    lv_lock();
+    DisplayLockGuard lock(this);
     // 更新时间
     if (hour_label_) {
         char hour_str[6];
@@ -404,8 +404,6 @@ void XiaoziyunliaoDisplay::UpdateIdleScreen() {
         }
     }
 #endif
-    lv_unlock();
-
 }
 
 void XiaoziyunliaoDisplay::ShowStandbyScreen(bool show) {

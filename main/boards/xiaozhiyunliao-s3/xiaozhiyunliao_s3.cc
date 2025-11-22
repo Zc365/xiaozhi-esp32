@@ -88,6 +88,7 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
                 ESP_LOGI(TAG, "蓝牙未安装");
         }
     });
+    ESP_LOGI(TAG, "BT_Emitter reg");
 #endif
     ESP_LOGI(TAG, "Inited");
 }
@@ -264,6 +265,10 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
             //强制关闭蓝牙模式
             switchBtMode(false);
             ESP_LOGI(TAG, "蓝牙已手动关闭");
+        }else if(getPowerManager()->Get4GLevel() == 1){
+            getPowerManager()->Shutdown4G();
+            display_->ShowBT(false);
+            ESP_LOGI(TAG, "4G/蓝牙已手动关闭");
         }else{
             getPowerManager()->Start4G();
             BT_Emitter::modultype modultype = bt_emitter_->getModulType();
@@ -273,6 +278,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
             if (modultype == BT_Emitter::modultype::MODUL_4G) {
                 SwitchNetworkType();
             }else if (modultype == BT_Emitter::modultype::MODUL_BT) {
+                ESP_LOGI(TAG, "启动蓝牙...");
                 bt_emitter_->start();//开蓝牙，关AEC
                 display_->ShowBT(true);
                 ESP_LOGI(TAG, "蓝牙已手动开启");

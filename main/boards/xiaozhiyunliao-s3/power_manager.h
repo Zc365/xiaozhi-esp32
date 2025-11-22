@@ -18,6 +18,7 @@ public:
     int GetBatteryLevel();
     void Start5V();
     void Shutdown5V();
+    int Get4GLevel(){ return is_4g_on_; };
     void Start4G();
     void Shutdown4G();
     void MCUSleep();
@@ -31,6 +32,7 @@ private:
     int is_charging_ = -1;
     int is_discharging_ = -1;
     int call_count_ = 0;
+    int is_4g_on_ = 0;
 };
 
 #endif

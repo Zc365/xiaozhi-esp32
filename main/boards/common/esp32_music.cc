@@ -300,7 +300,7 @@ Esp32Music::~Esp32Music() {
 }
 
 bool Esp32Music::Download(const std::string& song_name, const std::string& artist_name) {
-    ESP_LOGI(TAG, "Starting to get music details for: %s", song_name.c_str());
+    ESP_LOGI(TAG, "Starting to get music details for: %s/%s", song_name.c_str(), artist_name.c_str());
     // ESP_LOGI(TAG, "云端由MeowEmbeddedMusicServer喵波音律嵌入式提供");
     // ESP_LOGI(TAG, "喵波音律QQ交流群:865754861");
     
@@ -342,7 +342,7 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
     // 检查响应状态码
     int status_code = http->GetStatusCode();
     if (status_code != 200) {
-        ESP_LOGE(TAG, "HTTP GET failed with status code: %d", status_code);
+        // ESP_LOGE(TAG, "HTTP GET failed with status code: %d", status_code);
         http->Close();
         return false;
     }
@@ -351,8 +351,8 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
     last_downloaded_data_ = http->ReadAll();
     http->Close();
     
-    ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d", status_code, last_downloaded_data_.length());
-    ESP_LOGD(TAG, "Complete music details response: %s", last_downloaded_data_.c_str());
+    // ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d", status_code, last_downloaded_data_.length());
+    // ESP_LOGD(TAG, "Complete music details response: %s", last_downloaded_data_.c_str());
     
     // 简单的认证响应检查（可选）
     if (last_downloaded_data_.find("ESP32动态密钥验证失败") != std::string::npos) {
@@ -379,10 +379,10 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
             
             // 检查audio_url是否有效
             if (cJSON_IsString(audio_url) && audio_url->valuestring && strlen(audio_url->valuestring) > 0) {
-                ESP_LOGI(TAG, "Audio URL path: %s", audio_url->valuestring);
+                // ESP_LOGI(TAG, "Audio URL path: %s", audio_url->valuestring);
                 
                 // 第二步：直接使用音频URL开始流式播放
-                std::string current_music_url_ = audio_url->valuestring;
+                current_music_url_ = audio_url->valuestring;
                 
                 ESP_LOGI(TAG, "Starting streaming playback for: %s", song_name.c_str());
                 song_name_displayed_ = false;  // 重置歌名显示标志
@@ -391,7 +391,7 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
                 // 处理歌词URL - 只有在歌词显示模式下才启动歌词
                 if (cJSON_IsString(lyric_url) && lyric_url->valuestring && strlen(lyric_url->valuestring) > 0) {
                     // 使用歌词URL获取歌词
-                    std::string current_lyric_url_ = lyric_url->valuestring;
+                    current_lyric_url_ = lyric_url->valuestring;
                     
                     // 根据显示模式决定是否启动歌词
                     if (display_mode_ == DISPLAY_MODE_LYRICS) {
@@ -422,7 +422,7 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
             } else {
                 // audio_url为空或无效
                 ESP_LOGE(TAG, "Audio URL not found or empty for song: %s", song_name.c_str());
-                ESP_LOGE(TAG, "Failed to find music: 没有找到歌曲 '%s'", song_name.c_str());
+                // ESP_LOGE(TAG, "Failed to find music: 没有找到歌曲 '%s'", song_name.c_str());
                 cJSON_Delete(response_json);
                 return false;
             }
@@ -1145,7 +1145,7 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
     
     while (retry_count < max_retries && !success && redirect_count < max_redirects) {
         if (retry_count > 0) {
-            ESP_LOGI(TAG, "Retrying lyric download (attempt %d of %d)", retry_count + 1, max_retries);
+            // ESP_LOGI(TAG, "Retrying lyric download (attempt %d of %d)", retry_count + 1, max_retries);
             // 重试前暂停一下
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
@@ -1189,7 +1189,7 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         
         // 非200系列状态码视为错误
         if (status_code < 200 || status_code >= 300) {
-            ESP_LOGE(TAG, "HTTP GET failed with status code: %d", status_code);
+            // ESP_LOGE(TAG, "HTTP GET failed with status code: %d", status_code);
             http->Close();
             retry_count++;
             continue;
@@ -1203,7 +1203,7 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         int total_read = 0;
         
         // 由于无法获取Content-Length和Content-Type头，我们不知道预期大小和内容类型
-        ESP_LOGD(TAG, "Starting to read lyric content");
+        // ESP_LOGD(TAG, "Starting to read lyric content");
         
         while (true) {
             bytes_read = http->Read(buffer, sizeof(buffer) - 1);
@@ -1216,11 +1216,11 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
                 
                 // 定期打印下载进度 - 改为DEBUG级别减少输出
                 if (total_read % 4096 == 0) {
-                    ESP_LOGD(TAG, "Downloaded %d bytes so far", total_read);
+                    // ESP_LOGD(TAG, "Downloaded %d bytes so far", total_read);
                 }
             } else if (bytes_read == 0) {
                 // 正常结束，没有更多数据
-                ESP_LOGD(TAG, "Lyric download completed, total bytes: %d", total_read);
+                // ESP_LOGD(TAG, "Lyric download completed, total bytes: %d", total_read);
                 success = true;
                 break;
             } else {
@@ -1253,7 +1253,7 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
     
     // 检查是否超过了最大重试次数
     if (retry_count >= max_retries) {
-        ESP_LOGE(TAG, "Failed to download lyrics after %d attempts", max_retries);
+        // ESP_LOGE(TAG, "Failed to download lyrics after %d attempts", max_retries);
         return false;
     }
     
@@ -1261,7 +1261,7 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
     if (!lyric_content.empty()) {
         size_t preview_size = std::min(lyric_content.size(), size_t(50));
         std::string preview = lyric_content.substr(0, preview_size);
-        ESP_LOGD(TAG, "Lyric content preview (%d bytes): %s", lyric_content.length(), preview.c_str());
+        // ESP_LOGD(TAG, "Lyric content preview (%d bytes): %s", lyric_content.length(), preview.c_str());
     } else {
         ESP_LOGE(TAG, "Failed to download lyrics or lyrics are empty");
         return false;
@@ -1320,7 +1320,7 @@ bool Esp32Music::ParseLyrics(const std::string& lyric_content) {
                     // 如果不是时间格式，跳过这一行（元数据标签）
                     if (!is_time_format) {
                         // 可以在这里处理元数据，例如提取标题、艺术家等信息
-                        ESP_LOGD(TAG, "Skipping metadata tag: [%s]", tag_or_time.c_str());
+                        // ESP_LOGD(TAG, "Skipping metadata tag: [%s]", tag_or_time.c_str());
                         continue;
                     }
                     
@@ -1345,9 +1345,9 @@ bool Esp32Music::ParseLyrics(const std::string& lyric_content) {
                             // 限制日志输出长度，避免中文字符截断问题
                             size_t log_len = std::min(safe_lyric_text.length(), size_t(50));
                             std::string log_text = safe_lyric_text.substr(0, log_len);
-                            ESP_LOGD(TAG, "Parsed lyric: [%d ms] %s", timestamp_ms, log_text.c_str());
+                            // ESP_LOGD(TAG, "Parsed lyric: [%d ms] %s", timestamp_ms, log_text.c_str());
                         } else {
-                            ESP_LOGD(TAG, "Parsed lyric: [%d ms] (empty)", timestamp_ms);
+                            // ESP_LOGD(TAG, "Parsed lyric: [%d ms] (empty)", timestamp_ms);
                         }
                     } catch (const std::exception& e) {
                         ESP_LOGW(TAG, "Failed to parse time: %s", tag_or_time.c_str());
@@ -1366,7 +1366,6 @@ bool Esp32Music::ParseLyrics(const std::string& lyric_content) {
 
 // 歌词显示线程
 void Esp32Music::LyricDisplayThread() {
-    ESP_LOGI(TAG, "Lyric display thread started");
     
     if (!DownloadLyrics(current_lyric_url_)) {
         ESP_LOGE(TAG, "Failed to download or parse lyrics");
@@ -1425,9 +1424,9 @@ void Esp32Music::UpdateLyricDisplay(int64_t current_time_ms) {
             // 显示歌词
             display->SetChatMessage("lyric", lyric_text.c_str());
             
-            ESP_LOGD(TAG, "Lyric update at %lldms: %s", 
-                    current_time_ms, 
-                    lyric_text.empty() ? "(no lyric)" : lyric_text.c_str());
+            // ESP_LOGD(TAG, "Lyric update at %lldms: %s", 
+            //         current_time_ms, 
+            //         lyric_text.empty() ? "(no lyric)" : lyric_text.c_str());
         }
     }
 }

@@ -306,16 +306,21 @@ void McpServer::AddCommonTools() {
         "Play the specified song. When users request to play music, this tool will automatically retrieve song details and start streaming.\n"
         "parameter:\n"
         "  `song_name`: The name of the song to be played.\n"
+        "  `artist_name`: The name of the artist of the song to be played (optional, default is empty string).\n"
         "return:\n"
         "  Play status information without confirmation, immediately play the song.",
-        PropertyList({Property("song_name", kPropertyTypeString)}),
+        PropertyList({
+            Property("song_name", kPropertyTypeString),//歌曲名称（必需）
+            Property("artist_name", kPropertyTypeString, "")//艺术家名称（可选，默认为空字符串）
+        }),
         [music](const PropertyList &properties) -> ReturnValue {
             auto song_name = properties["song_name"].value<std::string>();
-            if (!music->Download(song_name)) {
+            auto artist_name = properties["artist_name"].value<std::string>();
+            if (!music->Download(song_name, artist_name)) {
                 return "{\"success\": false, \"message\": \"Failed to obtain music resources\"}";
             }
             auto download_result = music->GetDownloadResult();
-            ESP_LOGD(TAG, "Music details result: %s", download_result.c_str());
+            // ESP_LOGD(TAG, "Music details result: %s", download_result.c_str());
             return true;
         });
 

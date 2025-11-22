@@ -163,12 +163,15 @@ void PowerManager::Shutdown5V() {
 
 void PowerManager::Start4G() {
     gpio_set_level(BOOT_4G_PIN, 1);
+    is_4g_on_ = 1;
 }
+
 
 void PowerManager::Shutdown4G() {
     gpio_set_level(BOOT_4G_PIN, 0);
     gpio_set_level(ML307_RX_PIN, 0);
     gpio_set_level(ML307_TX_PIN, 0);
+    is_4g_on_ = 0;
 }
 
 void PowerManager::MCUSleep() {
