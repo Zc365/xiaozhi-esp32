@@ -20,12 +20,12 @@ dependencies:
   # 78/esp_lcd_nv3023: ~1.0.0
   esp-wifi-connect:
     path: ../../esp-wifi-connect
-  #  78/esp-wifi-connect: ~2.6.1
+  #  78/esp-wifi-connect: ~2.6.2
   78/esp-opus-encoder: ~2.4.1
-  78/esp-ml307: ~3.3.7
+  78/esp-ml307: ~3.5.1
   xiaozhi-fonts:
     path: ../../xiaozhi-fonts
-  #  78/xiaozhi-fonts: ~1.5.4
+  #  78/xiaozhi-fonts: ~1.5.5
   espressif/led_strip: ~3.0.1
   espressif/esp_codec_dev: ~1.5
   espressif/esp-sr: ~2.2.0
@@ -51,7 +51,10 @@ dependencies:
   espressif2022/esp_emote_gfx: ^1.1.2
   # espressif/adc_mic: ^0.2.1
   # espressif/esp_mmap_assets: '>=1.2'
-  # txp666/otto-emoji-gif-component: ^1.0.3
+  # txp666/otto-emoji-gif-component:
+  #    version: ^1.0.3
+  #    rules:
+  #    - if: target in [esp32s3]
   espressif/adc_battery_estimation: ^0.2.0
   espressif/esp_new_jpeg: ^0.6.1
   chmorgan/esp-libhelix-mp3:
@@ -101,6 +104,11 @@ dependencies:
   #   version: 1.1.0
   #   rules:
   #   - if: target in [esp32p4]
+
+  # espressif/bmi270_sensor:
+  #   version: ^0.1.0
+  #   rules:
+  #   - if: target in [esp32s3, esp32c5]
 
   ## Required IDF version
   idf:
