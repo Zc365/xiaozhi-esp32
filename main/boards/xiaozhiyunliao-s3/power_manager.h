@@ -31,6 +31,7 @@ private:
     int is_charging_ = -1;
     int is_discharging_ = -1;
     int call_count_ = 0;
+    int is_4g_on_ = 0;
 };
 
 #endif
