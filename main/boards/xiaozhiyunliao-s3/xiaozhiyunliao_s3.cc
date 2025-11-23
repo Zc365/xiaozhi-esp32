@@ -361,7 +361,7 @@ void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
     } else {
         // 禁用蓝牙模式
         Settings settings("aec", false);
-        int storedMode = settings.GetInt("mode", kAecOff);
+        int storedMode = settings.GetInt("mode", kAecOnDeviceSide);
         if(storedMode != kAecOff && app.GetAecMode() == kAecOff){
             switchAecMode((AecMode)storedMode);
         }
