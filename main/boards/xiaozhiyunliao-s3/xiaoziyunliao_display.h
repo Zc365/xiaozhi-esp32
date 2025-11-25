@@ -35,6 +35,7 @@ public:
     void SetChatMessage(const char* role, const char* content) override; 
     void SetEmotion(const char* emotion) override;
     void ShowStandbyScreen(bool show) override;
+    virtual void SetTheme(Theme* theme) override;
     void showUI() override;
 
     lv_timer_t *idle_timer_ = nullptr;

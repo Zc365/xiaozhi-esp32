@@ -1006,6 +1006,9 @@ void LcdDisplay::SetChatMessage(const char* role, const char* content) {
 #endif
 
 void LcdDisplay::SetEmotion(const char* emotion) {
+    if (emotion == nullptr || strlen(emotion) == 0) {
+        return;
+    }
     // Stop any running GIF animation
     if (gif_controller_) {
         DisplayLockGuard lock(this);

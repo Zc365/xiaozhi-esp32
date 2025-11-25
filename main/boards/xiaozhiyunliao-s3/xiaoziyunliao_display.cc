@@ -148,15 +148,11 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
   
     //日期标签
     date_label_ = lv_label_create(tab_idle);
-    // lv_obj_set_style_text_font(date_label_, lvgl_theme->text_font()->font(), 0);
-    // lv_obj_set_style_text_color(date_label_, lvgl_theme->text_color(), 0);
     lv_label_set_text(date_label_, "");//10月1日
     lv_obj_align(date_label_, LV_ALIGN_TOP_MID, -60, 0);
     
     // 星期标签
     weekday_label_ = lv_label_create(tab_idle);
-    // lv_obj_set_style_text_font(weekday_label_, lvgl_theme->text_font()->font(), 0);
-    // lv_obj_set_style_text_color(weekday_label_, lvgl_theme->text_color(), 0);
     lv_label_set_text(weekday_label_, "");//星期一
 #if CONFIG_USE_WEATHER
     lv_obj_align(weekday_label_, LV_ALIGN_TOP_MID, -60, 25);
@@ -166,14 +162,11 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
 #if CONFIG_USE_WEATHER    
     //城市标签
     city_label_ = lv_label_create(tab_idle);
-    // lv_obj_set_style_text_font(city_label_, lvgl_theme->text_font()->font(), 0);
-    // lv_obj_set_style_text_color(city_label_, lvgl_theme->text_color(), 0);
     lv_label_set_text(city_label_, "读取中");//北京
     lv_obj_align(city_label_, LV_ALIGN_TOP_MID, 60, 0);
 
     //空气标签
     aqi_label_ = lv_label_create(tab_idle);
-    // lv_obj_set_style_text_font(aqi_label_, lvgl_theme->text_font()->font(), 0);
     lv_obj_set_style_text_color(aqi_label_, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(aqi_label_, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(aqi_label_, lv_color_hex(0x18EB4A), 0);
@@ -198,13 +191,11 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
     // 创建小时标签
     hour_label_ = lv_label_create(time_container_);
     lv_obj_set_style_text_font(hour_label_, &font_num_70_2, 0);
-    // lv_obj_set_style_text_color(hour_label_, lvgl_theme->text_color(), 0);
     lv_label_set_text(hour_label_, "00 ");
 
     // 创建冒号标签
     colon_label_ = lv_label_create(time_container_);
     lv_obj_set_style_text_font(colon_label_, &font_num_70_2, 0);
-    // lv_obj_set_style_text_color(colon_label_, lvgl_theme->text_color(), 0);
     lv_label_set_text(colon_label_, ":");
     lv_obj_set_style_translate_y(colon_label_, -5, 0); // 上移5像素
 
@@ -216,7 +207,6 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
 #if CONFIG_USE_WEATHER
     // 创建天气类型标签
     weather_label_ = lv_label_create(tab_idle);
-    // lv_obj_set_style_text_font(weather_label_, lvgl_theme->text_font()->font(), 0);
     lv_obj_set_style_text_color(weather_label_, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(weather_label_, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(weather_label_, lv_color_hex(0xF1BA3B), 0);
@@ -229,8 +219,6 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
 
     //风向标签
     wind_label_ = lv_label_create(tab_idle);
-    // lv_obj_set_style_text_font(wind_label_, lvgl_theme->text_font()->font(), 0);
-    // lv_obj_set_style_text_color(wind_label_, lvgl_theme->text_color(), 0);
     lv_label_set_text(wind_label_, "");//西南风二级
     lv_obj_align(wind_label_, LV_ALIGN_BOTTOM_MID, -60, -15);
 
@@ -248,8 +236,6 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
     lv_label_set_text(temperature_label1_, icon_buf);
 
     temperature_label2_ = lv_label_create(tab_idle);
-    // lv_obj_set_style_text_font(temperature_label2_, lvgl_theme->text_font()->font(), 0);
-    lv_obj_set_style_text_color(temperature_label2_, lvgl_theme->text_color(), 0);
     lv_label_set_text(temperature_label2_, "");//28℃
     lv_obj_align(temperature_label2_, LV_ALIGN_BOTTOM_MID, 60, -40);
 
@@ -266,14 +252,11 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
     lv_label_set_text(humidity_label1_, icon_buf);
 
     humidity_label2_ = lv_label_create(tab_idle);
-    // lv_obj_set_style_text_font(humidity_label2_, lvgl_theme->text_font()->font(), 0);
-    // lv_obj_set_style_text_color(humidity_label2_, lvgl_theme->text_color(), 0);
     lv_label_set_text(humidity_label2_, "");//65%
     lv_obj_align(humidity_label2_, LV_ALIGN_BOTTOM_MID, 60, -15);
 
     //提醒标签
     hint_label_ = lv_label_create(tab_idle);
-    // lv_obj_set_style_text_font(hint_label_, lvgl_theme->text_font()->font(), 0);
     lv_obj_set_style_text_color(hint_label_, lv_color_hex(0xF1BA3B), 0);
     lv_label_set_text(hint_label_, "");//提醒
     lv_obj_align(hint_label_, LV_ALIGN_BOTTOM_MID, 0, 15);
@@ -444,7 +427,7 @@ void XiaoziyunliaoDisplay::NewChatPage() {
         // 创建带边框的二维码容器
         qr_container = lv_obj_create(content_);
         lv_obj_remove_style_all(qr_container);
-        lv_obj_set_size(qr_container, 126, 126);
+        lv_obj_set_size(qr_container, 106, 106);
         lv_obj_set_style_border_color(qr_container, lvgl_theme->text_color(), 0);
         lv_obj_set_style_border_width(qr_container, 3, 0);
         lv_obj_set_style_bg_color(qr_container, lvgl_theme->background_color(), 0);
@@ -452,7 +435,7 @@ void XiaoziyunliaoDisplay::NewChatPage() {
 
         // 创建控制台二维码
         console_qrcode_ = lv_qrcode_create(qr_container);
-        lv_qrcode_set_size(console_qrcode_, 120);
+        lv_qrcode_set_size(console_qrcode_, 100);
         lv_qrcode_set_dark_color(console_qrcode_, lvgl_theme->background_color());
         lv_qrcode_set_light_color(console_qrcode_, lvgl_theme->text_color());
         lv_qrcode_update(console_qrcode_, CONSOLE_URL, strlen(CONSOLE_URL));
@@ -539,8 +522,8 @@ void XiaoziyunliaoDisplay::NewSmartConfigPage() {
     if (content_) {
         smartconfig_qrcode_ = lv_qrcode_create(content_);
         lv_qrcode_set_size(smartconfig_qrcode_, 100);
-        lv_qrcode_set_dark_color(smartconfig_qrcode_, lvgl_theme->text_color());
-        lv_qrcode_set_light_color(smartconfig_qrcode_, lvgl_theme->background_color());
+        lv_qrcode_set_dark_color(smartconfig_qrcode_, lvgl_theme->background_color());
+        lv_qrcode_set_light_color(smartconfig_qrcode_, lvgl_theme->text_color());
         lv_qrcode_update(smartconfig_qrcode_, WIFI_URL, strlen(WIFI_URL));
     }
 }
@@ -629,8 +612,8 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
     // 直接创建二维码
     config_qrcode_panel_ = lv_qrcode_create(right_container);
     lv_qrcode_set_size(config_qrcode_panel_, 120);
-    lv_qrcode_set_dark_color(config_qrcode_panel_, lvgl_theme->text_color());
-    lv_qrcode_set_light_color(config_qrcode_panel_, lvgl_theme->background_color());
+    lv_qrcode_set_dark_color(config_qrcode_panel_, lvgl_theme->background_color());
+    lv_qrcode_set_light_color(config_qrcode_panel_, lvgl_theme->text_color());
     lv_obj_center(config_qrcode_panel_);
     lv_qrcode_update(config_qrcode_panel_, CONSOLE_URL, strlen(CONSOLE_URL));
 }
@@ -745,7 +728,7 @@ void XiaoziyunliaoDisplay::SetEmotion(const char* emotion) {
     LcdDisplay::SetEmotion(emotion);
 }
 
-void XiaoziyunliaoDisplay::showUI() {
+void XiaoziyunliaoDisplay::SetTheme(Theme* theme) {
     DisplayLockGuard lock(this);
     if (logo_label_) {
         lv_label_set_text(logo_label_, Lang::Strings::LOGO);
@@ -753,31 +736,22 @@ void XiaoziyunliaoDisplay::showUI() {
 #if CONFIG_USE_BLUETOOTH
     lv_label_set_text(bt_label_, FONT_AWESOME_BLUETOOTH);
 #endif
-
-    
-    LvglTheme* lvgl_theme = static_cast<LvglTheme*>(current_theme_);
+    ESP_LOGI(TAG, "Set theme to %s", theme->name().c_str());
+    LvglTheme* lvgl_theme = static_cast<LvglTheme*>(theme);
+    LcdDisplay::SetTheme(lvgl_theme);
     lv_obj_set_style_text_font(tab_main, lvgl_theme->text_font()->font(), 0);
     lv_obj_set_style_text_color(tab_main, lvgl_theme->text_color(), 0);
     lv_obj_set_style_bg_color(tab_main, lvgl_theme->background_color(), 0);
     
     lv_obj_set_style_text_font(tab_idle, lvgl_theme->text_font()->font(), 0);
-    lv_obj_set_style_text_color(tab_idle, lvgl_theme->text_color(), 0);
-    lv_obj_set_style_bg_color(tab_idle, lvgl_theme->background_color(), 0);
+    lv_obj_set_style_text_color(tab_idle, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(tab_idle, lv_color_black(), 0);
+}
 
-    std::string helpMessage = Lang::Strings::HELP4;
-    helpMessage += "\n"; 
-    switch (Application::GetInstance().GetAecMode()) {
-        case kAecOff:
-            helpMessage += Lang::Strings::RTC_MODE_OFF;
-            break;
-        case kAecOnServerSide:
-        case kAecOnDeviceSide:
-            helpMessage += Lang::Strings::RTC_MODE_ON;
-            break;
-        }    
-    helpMessage += "\n"; 
-    helpMessage += Lang::Strings::HELP1;
+void XiaoziyunliaoDisplay::showUI() {
+    std::string helpMessage = Lang::Strings::HELP1;
     helpMessage += "\n"; 
     helpMessage += Lang::Strings::HELP2;
+    DisplayLockGuard lock(this);
     SpiLcdDisplay::SetChatMessage("system", helpMessage.c_str());
 }

@@ -111,6 +111,12 @@ void McpServer::AddCommonTools() {
                 auto theme = theme_manager.GetTheme(theme_name);
                 if (theme != nullptr) {
                     display->SetTheme(theme);
+                    auto& app = Application::GetInstance();
+                    app.Schedule([&app]() {
+                        vTaskDelay(pdMS_TO_TICKS(3000));
+
+                        app.Reboot();
+                    });
                     return true;
                 }
                 return false;
@@ -168,6 +174,24 @@ void McpServer::AddCommonTools() {
 
     #endif
     // System control tools
+    AddTool("self.system.switch_4g_bluetool",
+        "Switch between WiFi, 4G module and Bluetooth. Automatically switches network modes or toggles Bluetooth on/off.",
+        PropertyList(), [](const PropertyList& properties) {
+            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            bool result = board1->SwitchNetwork();
+            return result;
+        });
+
+    AddTool("self.system.set_aec",
+        "Enable or disable voice interruption mode (AEC). When enabled, the device can detect voice interruptions and respond accordingly.",
+        PropertyList({
+            Property("enable", kPropertyTypeBoolean)
+        }), [](const PropertyList& properties) {
+            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            bool enable = properties["enable"].value<bool>();
+            board1->switchAecMode(enable);
+            return true;
+        });
     AddTool("self.system.reconfigure_wifi",
         "Reboot the device and enter WiFi configuration mode,Requires user confirmation before execution.",
         PropertyList(), [](const PropertyList& properties) {
@@ -175,7 +199,6 @@ void McpServer::AddCommonTools() {
             board1->ResetWifiConfiguration();
             return true;
         });
-
     AddTool("self.system.power_off",
         "Power off the device after 1-second delay,Requires user confirmation before execution.",
         PropertyList(), [this](const PropertyList& properties) {
@@ -185,7 +208,6 @@ void McpServer::AddCommonTools() {
             board1->Sleep();
             return true;
         });
-
     AddTool("self.system.restart",
         "Restart the device after 1-second delay,Requires user confirmation before execution.",
         PropertyList(), [this](const PropertyList& properties) {
@@ -194,8 +216,7 @@ void McpServer::AddCommonTools() {
             esp_restart();
             return true;
         });
-
-    // Existing display tools
+    // display tools
     AddTool("self.screen.show_help_page", 
         "Switch to the help/configuration page. Use this when user needs to access device settings or help information.",
         PropertyList(),
@@ -207,7 +228,6 @@ void McpServer::AddCommonTools() {
             }
             return true;
         });
-
     AddTool("self.screen.show_chat_page", 
         "Switch to the main chat interface. Use this as the default view for normal conversation.",
         PropertyList(),

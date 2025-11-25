@@ -225,7 +225,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
         // ESP_LOGI(TAG, "Button OnPressUp");
     });
     boot_button_.OnLongPress([this]() {
-        ESP_LOGI(TAG, "Button LongPress to Sleep");
+        // ESP_LOGI(TAG, "Button LongPres");
         display_->SetStatus(Lang::Strings::SHUTTING_DOWN);
         display_->HideChatPage();
         display_->HideSmartConfigPage();
@@ -234,7 +234,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
         Sleep();
     });    
     boot_button_.OnDoubleClick([this]() {
-        ESP_LOGI(TAG, "Button OnDoubleClick");
+        // ESP_LOGI(TAG, "Button OnDoubleClick");
         if (display_ && !wifi_config_mode_) {
             display_->SwitchPage();
         }
@@ -244,49 +244,13 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
 #if CONFIG_USE_DEVICE_AEC
         if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
             auto& app = Application::GetInstance();
-            AecMode newMode = app.GetAecMode() == kAecOff ? kAecOnDeviceSide : kAecOff;
-            switchAecMode(newMode);
-            Settings settings("aec", true);
-            settings.SetInt("mode", newMode);
+            bool enableAec = app.GetAecMode() == kAecOff;
+            switchAecMode(enableAec);
             display_->SwitchPage();
             return;
         }
 #endif
-#if CONFIG_USE_BLUETOOTH
-        if(GetNetworkType() == NetworkType::ML307){
-            //4G已开机
-            SwitchNetworkType();
-            return;
-        }
-        if(bt_emitter_->checkStarted()){
-            bt_emitter_->stop();//关蓝牙，打开AEC
-            getPowerManager()->Shutdown4G();
-            display_->ShowBT(false);
-            //强制关闭蓝牙模式
-            switchBtMode(false);
-            ESP_LOGI(TAG, "蓝牙已手动关闭");
-        }else if(getPowerManager()->Get4GLevel() == 1){
-            getPowerManager()->Shutdown4G();
-            display_->ShowBT(false);
-            ESP_LOGI(TAG, "4G/蓝牙已手动关闭");
-        }else{
-            getPowerManager()->Start4G();
-            BT_Emitter::modultype modultype = bt_emitter_->getModulType();
-            if (modultype == BT_Emitter::modultype::MODUL_NONE) {
-                modultype = bt_emitter_->checkALLModul();
-            }
-            if (modultype == BT_Emitter::modultype::MODUL_4G) {
-                SwitchNetworkType();
-            }else if (modultype == BT_Emitter::modultype::MODUL_BT) {
-                ESP_LOGI(TAG, "启动蓝牙...");
-                bt_emitter_->start();//开蓝牙，关AEC
-                display_->ShowBT(true);
-                ESP_LOGI(TAG, "蓝牙已手动开启");
-            }
-        }
-#else
-        SwitchNetworkType();
-#endif
+        SwitchNetwork();
     });  
     boot_button_.OnFourClick([this]() {
         ESP_LOGI(TAG, "Button OnFourClick");
@@ -348,6 +312,50 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     }
 #endif
 
+bool XiaoZhiYunliaoS3::SwitchNetwork() {
+#if CONFIG_USE_BLUETOOTH
+    if(GetNetworkType() == NetworkType::ML307){
+        //4G已开机
+        SwitchNetworkType();
+        return true;
+    }
+    if(bt_emitter_->checkStarted()){
+        bt_emitter_->stop();//关蓝牙，打开AEC
+        getPowerManager()->Shutdown4G();
+        display_->ShowBT(false);
+        //强制关闭蓝牙模式
+        switchBtMode(false);
+        ESP_LOGI(TAG, "蓝牙已手动关闭");
+        return true;
+    }else if(getPowerManager()->Get4GLevel() == 1){
+        getPowerManager()->Shutdown4G();
+        display_->ShowBT(false);
+        ESP_LOGI(TAG, "4G/蓝牙已手动关闭");
+        return true;
+    }else{
+        getPowerManager()->Start4G();
+        BT_Emitter::modultype modultype = bt_emitter_->getModulType();
+        if (modultype == BT_Emitter::modultype::MODUL_NONE) {
+            modultype = bt_emitter_->checkALLModul();
+        }
+        if (modultype == BT_Emitter::modultype::MODUL_4G) {
+            SwitchNetworkType();
+            return true;
+        }else if (modultype == BT_Emitter::modultype::MODUL_BT) {
+            ESP_LOGI(TAG, "启动蓝牙...");
+            bt_emitter_->start();//开蓝牙，关AEC
+            display_->ShowBT(true);
+            ESP_LOGI(TAG, "蓝牙已手动开启");
+            return true;
+        }
+        return false;
+    }
+#else
+    SwitchNetworkType();
+    return true;
+#endif
+}
+
 void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
     auto& app = Application::GetInstance();
     auto codec = static_cast<Es8388AudioCodec*>(GetAudioCodec());
@@ -381,6 +389,14 @@ void XiaoZhiYunliaoS3::switchAecMode(AecMode mode) {
     } else {
         display_->ShowNotification(Lang::Strings::RTC_MODE_OFF);
     }
+}
+
+void XiaoZhiYunliaoS3::switchAecMode(bool enable) {
+    auto& app = Application::GetInstance();
+    AecMode newMode = enable ? kAecOnDeviceSide : kAecOff;
+    switchAecMode(newMode);
+    Settings settings("aec", true);
+    settings.SetInt("mode", newMode);
 }
 
 AudioCodec* XiaoZhiYunliaoS3::GetAudioCodec() {
