@@ -58,12 +58,14 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
         power_manager_->Shutdown4G();//缺省关闭
     }
 
+    InitializeSpi();
+    InitializeLCDDisplay();
+
     Settings settings("aec", false);
     auto& app = Application::GetInstance();
     app.SetAecMode(settings.GetInt("mode",kAecOnDeviceSide) == kAecOnDeviceSide ? kAecOnDeviceSide : kAecOff);
+    display_->ShowAEC(app.GetAecMode() != kAecOff);
 
-    InitializeSpi();
-    InitializeLCDDisplay();
     if(GetAudioCodec()->output_volume() == 0){
         GetAudioCodec()->SetOutputVolume(70);
     }
@@ -319,20 +321,18 @@ bool XiaoZhiYunliaoS3::SwitchNetwork() {
         SwitchNetworkType();
         return true;
     }
-    if(bt_emitter_->checkStarted()){
+    if(bt_emitter_->checkStarted()){//已开启蓝牙
         bt_emitter_->stop();//关蓝牙，打开AEC
         getPowerManager()->Shutdown4G();
-        display_->ShowBT(false);
-        //强制关闭蓝牙模式
         switchBtMode(false);
         ESP_LOGI(TAG, "蓝牙已手动关闭");
         return true;
-    }else if(getPowerManager()->Get4GLevel() == 1){
+    }else if(getPowerManager()->Get4GLevel() == 1){//未装蓝牙，且开启开关
         getPowerManager()->Shutdown4G();
         display_->ShowBT(false);
         ESP_LOGI(TAG, "4G/蓝牙已手动关闭");
         return true;
-    }else{
+    }else{//开启开关
         getPowerManager()->Start4G();
         BT_Emitter::modultype modultype = bt_emitter_->getModulType();
         if (modultype == BT_Emitter::modultype::MODUL_NONE) {
@@ -343,7 +343,7 @@ bool XiaoZhiYunliaoS3::SwitchNetwork() {
             return true;
         }else if (modultype == BT_Emitter::modultype::MODUL_BT) {
             ESP_LOGI(TAG, "启动蓝牙...");
-            bt_emitter_->start();//开蓝牙，关AEC
+            bt_emitter_->start();//启动蓝牙扫描
             display_->ShowBT(true);
             ESP_LOGI(TAG, "蓝牙已手动开启");
             return true;
@@ -364,14 +364,18 @@ void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
         // 启用蓝牙模式
         if(app.GetAecMode() != kAecOff){
             switchAecMode(kAecOff);
+            display_->ShowAEC(false);
         }
         codec->EnablePA(false);
+        display_->ShowBT(true);
     } else {
         // 禁用蓝牙模式
+        display_->ShowBT(false);
         Settings settings("aec", false);
         int storedMode = settings.GetInt("mode", kAecOnDeviceSide);
         if(storedMode != kAecOff && app.GetAecMode() == kAecOff){
             switchAecMode((AecMode)storedMode);
+            display_->ShowAEC(true);
         }
         codec->EnablePA(true);
     }
@@ -384,6 +388,7 @@ void XiaoZhiYunliaoS3::switchAecMode(AecMode mode) {
     // 直接使用传入的 mode 参数设置 AEC 模式
     app.SetAecMode(mode);
     // 显示通知
+    display_->ShowAEC(mode != kAecOff);
     if (mode != kAecOff) {
         display_->ShowNotification(Lang::Strings::RTC_MODE_ON);
     } else {
@@ -392,7 +397,6 @@ void XiaoZhiYunliaoS3::switchAecMode(AecMode mode) {
 }
 
 void XiaoZhiYunliaoS3::switchAecMode(bool enable) {
-    auto& app = Application::GetInstance();
     AecMode newMode = enable ? kAecOnDeviceSide : kAecOff;
     switchAecMode(newMode);
     Settings settings("aec", true);

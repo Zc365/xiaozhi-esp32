@@ -14,16 +14,6 @@
 
 #define TAG "Display"
 
-#if CONFIG_USE_BLUETOOTH
-    void Display::ShowBT(bool show){
-        DisplayLockGuard lock(this);
-        if (show) {
-            lv_obj_remove_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_add_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
-        }
-    }
-#endif
 #if CONFIG_USE_MUSIC
     void Display::SetMusicInfo(const char* song_name) {
         // 默认实现：对于非微信模式，将歌名显示在聊天消息标签中

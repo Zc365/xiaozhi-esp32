@@ -174,7 +174,7 @@ void McpServer::AddCommonTools() {
 
     #endif
     // System control tools
-    AddTool("self.system.switch_4g_bluetool",
+    AddTool("self.system.switch_4g_bluetooth",
         "Switch between WiFi, 4G module and Bluetooth. Automatically switches network modes or toggles Bluetooth on/off.",
         PropertyList(), [](const PropertyList& properties) {
             auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());

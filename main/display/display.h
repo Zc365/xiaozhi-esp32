@@ -49,8 +49,9 @@ public:
     virtual void clearScreen() {}
 #endif
 #if CONFIG_USE_BLUETOOTH
-    virtual void ShowBT(bool show);
+    virtual void ShowBT(bool show){};
 #endif
+    virtual void ShowAEC(bool show) {};
     virtual void ShowStandbyScreen(bool show){};
     virtual void showUI(){};
 
@@ -67,9 +68,6 @@ protected:
     lv_obj_t *logo_label_ = nullptr;
     lv_obj_t *notification_label_ = nullptr;
     lv_obj_t *mute_label_ = nullptr;
-#if CONFIG_USE_BLUETOOTH
-    lv_obj_t *bt_label_ = nullptr;
-#endif
     lv_obj_t *battery_label_ = nullptr;
     lv_obj_t* chat_message_label_ = nullptr;
     lv_obj_t* low_battery_popup_ = nullptr;

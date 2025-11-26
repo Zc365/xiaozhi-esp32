@@ -42,6 +42,25 @@ LV_FONT_DECLARE(font_awesome_30_4);
     #define COLOR_MAGENTA 0xF81F
     #define COLOR_WHITE   0xFFFF
 #endif
+#if CONFIG_USE_BLUETOOTH
+    void LcdDisplay::ShowBT(bool show){
+        DisplayLockGuard lock(this);
+        if (show) {
+            lv_obj_remove_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+#endif
+
+void LcdDisplay::ShowAEC(bool show){
+    DisplayLockGuard lock(this);
+    if (show) {
+        lv_obj_remove_flag(aec_label_, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(aec_label_, LV_OBJ_FLAG_HIDDEN);
+    }
+}
 
 void LcdDisplay::InitializeLcdThemes() {
     auto text_font = std::make_shared<LvglBuiltInFont>(&BUILTIN_TEXT_FONT);
@@ -908,9 +927,15 @@ void LcdDisplay::SetupUI() {
 #if CONFIG_USE_BLUETOOTH
     bt_label_ = lv_label_create(status_bar_);
     lv_obj_set_style_text_font(bt_label_, icon_font, 0);
+    lv_label_set_text(bt_label_, FONT_AWESOME_BLUETOOTH);
     lv_obj_add_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
 #endif
-   
+
+    aec_label_ = lv_label_create(status_bar_);
+    lv_obj_set_style_text_font(aec_label_, icon_font, 0);
+    lv_label_set_text(aec_label_, FONT_AWESOME_COMMENT);
+    lv_obj_add_flag(aec_label_, LV_OBJ_FLAG_HIDDEN);
+
     network_label_ = lv_label_create(status_bar_);
     lv_label_set_text(network_label_, "");
     lv_obj_set_style_text_font(network_label_, icon_font, 0);
@@ -1096,10 +1121,14 @@ void LcdDisplay::SetTheme(Theme* theme) {
         lv_obj_set_style_text_font(mute_label_, large_icon_font, 0);
         lv_obj_set_style_text_font(battery_label_, large_icon_font, 0);
         lv_obj_set_style_text_font(network_label_, large_icon_font, 0);
+        lv_obj_set_style_text_font(bt_label_, large_icon_font, 0);
+        lv_obj_set_style_text_font(aec_label_, large_icon_font, 0);
     } else {
         lv_obj_set_style_text_font(mute_label_, icon_font, 0);
         lv_obj_set_style_text_font(battery_label_, icon_font, 0);
         lv_obj_set_style_text_font(network_label_, icon_font, 0);
+        lv_obj_set_style_text_font(bt_label_, icon_font, 0);
+        lv_obj_set_style_text_font(aec_label_, icon_font, 0);
     }
 
     // Set parent text color
@@ -1127,6 +1156,8 @@ void LcdDisplay::SetTheme(Theme* theme) {
     lv_obj_set_style_text_color(notification_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(mute_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(battery_label_, lvgl_theme->text_color(), 0);
+    lv_obj_set_style_text_color(bt_label_, lvgl_theme->text_color(), 0);
+    lv_obj_set_style_text_color(aec_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(emoji_label_, lvgl_theme->text_color(), 0);
 
     // If we have the chat message style, update all message bubbles

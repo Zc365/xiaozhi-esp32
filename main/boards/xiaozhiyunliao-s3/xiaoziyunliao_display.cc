@@ -264,7 +264,6 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
 }
 
 void XiaoziyunliaoDisplay::UpdateIdleScreen() {
-     LvglTheme* lvgl_theme = static_cast<LvglTheme*>(current_theme_);
     // Get current time
     time_t now;
     struct tm timeinfo;
@@ -285,9 +284,9 @@ void XiaoziyunliaoDisplay::UpdateIdleScreen() {
     }
     if (colon_label_) {
         if (timeinfo.tm_sec % 2 == 0) {
-            lv_obj_set_style_text_color(colon_label_, lvgl_theme->text_color(), 0);
+            lv_obj_set_style_text_color(colon_label_, lv_color_white(), 0);
         } else {
-            lv_obj_set_style_text_color(colon_label_, lvgl_theme->background_color(), 0);
+            lv_obj_set_style_text_color(colon_label_, lv_color_black(), 0);
         }
     }
     // 更新日期
@@ -733,9 +732,6 @@ void XiaoziyunliaoDisplay::SetTheme(Theme* theme) {
     if (logo_label_) {
         lv_label_set_text(logo_label_, Lang::Strings::LOGO);
     }
-#if CONFIG_USE_BLUETOOTH
-    lv_label_set_text(bt_label_, FONT_AWESOME_BLUETOOTH);
-#endif
     ESP_LOGI(TAG, "Set theme to %s", theme->name().c_str());
     LvglTheme* lvgl_theme = static_cast<LvglTheme*>(theme);
     LcdDisplay::SetTheme(lvgl_theme);

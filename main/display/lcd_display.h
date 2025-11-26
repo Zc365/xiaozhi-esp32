@@ -76,6 +76,10 @@ protected:
 #endif
 
 protected:
+#if CONFIG_USE_BLUETOOTH
+    lv_obj_t *bt_label_ = nullptr;
+#endif
+    lv_obj_t *aec_label_ = nullptr;
     // Add protected constructor
     LcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_handle_t panel, int width, int height);
     
@@ -84,6 +88,10 @@ public:
     virtual void SetEmotion(const char* emotion) override;
     virtual void SetChatMessage(const char* role, const char* content) override; 
     virtual void SetPreviewImage(std::unique_ptr<LvglImage> image) override;
+#if CONFIG_USE_BLUETOOTH
+    virtual void ShowBT(bool show) override;
+#endif
+    virtual void ShowAEC(bool show) override;
 #if CONFIG_USE_MUSIC
     virtual void SetMusicInfo(const char* song_name) override;
     virtual void start() override;
