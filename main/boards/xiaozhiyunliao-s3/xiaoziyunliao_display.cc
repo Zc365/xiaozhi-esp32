@@ -619,26 +619,16 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
 
 void XiaoziyunliaoDisplay::DelConfigPage() {
     DisplayLockGuard lock(this);
-    if (config_text_panel_) {
-        lv_obj_del(config_text_panel_);
-        config_text_panel_ = nullptr;
-    }
-    if (config_qrcode_panel_) {
-        lv_obj_del(config_qrcode_panel_);
-        config_qrcode_panel_ = nullptr;
-    }
-    if (qrcode_label_) {
-        lv_obj_del(qrcode_label_);
-        qrcode_label_ = nullptr;
-    }
-    if (right_container) {
-        lv_obj_del(right_container);
-        right_container = nullptr;
-    }
     if (config_container_) {
         lv_obj_del(config_container_);
         config_container_ = nullptr;
     }
+    
+    // 将所有子对象指针置空，因为它们已经被父容器删除
+    config_text_panel_ = nullptr;
+    config_qrcode_panel_ = nullptr;
+    qrcode_label_ = nullptr;
+    right_container = nullptr;
 }
 
 
@@ -679,13 +669,10 @@ void XiaoziyunliaoDisplay::ShowChatPage() {
 
 void XiaoziyunliaoDisplay::DelChatPage() {
     DisplayLockGuard lock(this);
+    // 先删除父容器，这会自动删除所有子对象
     if (qr_container) {
         lv_obj_del(qr_container);
         qr_container = nullptr;
-    }
-    if (console_qrcode_) {
-        lv_obj_del(console_qrcode_);
-        console_qrcode_ = nullptr;
     }
     if (emoji_box_) {
         lv_obj_del(emoji_box_);
@@ -695,6 +682,11 @@ void XiaoziyunliaoDisplay::DelChatPage() {
         lv_obj_del(chat_message_label_);
         chat_message_label_ = nullptr;
     }
+    
+    // 将所有子对象指针置空，因为它们已经被父容器删除
+    console_qrcode_ = nullptr;
+    emoji_label_ = nullptr;
+    emoji_image_ = nullptr;
 }
 
 bool XiaoziyunliaoDisplay::isActivationStatus() const {
