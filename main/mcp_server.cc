@@ -113,8 +113,7 @@ void McpServer::AddCommonTools() {
                     display->SetTheme(theme);
                     auto& app = Application::GetInstance();
                     app.Schedule([&app]() {
-                        vTaskDelay(pdMS_TO_TICKS(3000));
-
+                        vTaskDelay(pdMS_TO_TICKS(1000));
                         app.Reboot();
                     });
                     return true;
@@ -173,17 +172,116 @@ void McpServer::AddCommonTools() {
         });
 
     #endif
-    // System control tools
-    AddTool("self.system.switch_4g_bluetooth",
-        "Switch between WiFi, 4G module and Bluetooth. Automatically switches network modes or toggles Bluetooth on/off.",
-        PropertyList(), [](const PropertyList& properties) {
-            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
-            bool result = board1->SwitchNetwork();
-            return result;
+#if CONFIG_USE_MUSIC
+    auto music = board.GetMusic();
+    AddTool("self.music.play_song",
+        "Play the specified song. When users request to play music, this tool will automatically retrieve song details and start streaming.\n"
+        "parameter:\n"
+        "  `song_name`: The name of the song to be played.\n"
+        "  `artist_name`: The name of the artist of the song to be played (optional, default is empty string).\n"
+        "return:\n"
+        "  Play status information without confirmation, immediately play the song.",
+        PropertyList({
+            Property("song_name", kPropertyTypeString),//歌曲名称（必需）
+            Property("artist_name", kPropertyTypeString, "")//艺术家名称（可选，默认为空字符串）
+        }),
+        [music](const PropertyList &properties) -> ReturnValue {
+            auto song_name = properties["song_name"].value<std::string>();
+            auto artist_name = properties["artist_name"].value<std::string>();
+            if (!music->Download(song_name, artist_name)) {
+                return "{\"success\": false, \"message\": \"Failed to obtain music resources\"}";
+            }
+            auto download_result = music->GetDownloadResult();
+            // ESP_LOGD(TAG, "Music details result: %s", download_result.c_str());
+            return true;
         });
 
+    AddTool("self.music.set_display_mode",
+        "Set the display mode for music playback. You can choose to display the spectrum or lyrics, for example, if the user says' open spectrum 'or' display spectrum ', the corresponding display mode will be set for' open lyrics' or 'display lyrics'.\n"
+        "parameter:\n"
+        "  `mode`: Display mode, with optional values of 'spectrum' or 'lyrics'.\n"
+        "return:\n"
+        "  Set result information.",
+        PropertyList({
+            Property("mode", kPropertyTypeString) // Display mode: "spectrum" or "lyrics"
+        }),
+        [music](const PropertyList &properties) -> ReturnValue {
+            auto mode_str = properties["mode"].value<std::string>();
+
+            // Convert to lowercase for comparison
+            std::transform(mode_str.begin(), mode_str.end(), mode_str.begin(), ::tolower);
+
+            if (mode_str == "spectrum" || mode_str == "频谱") {
+                // Set to spectrum display mode
+                auto esp32_music = static_cast<Esp32Music *>(music);
+                    esp32_music->SetDisplayMode(Esp32Music::DISPLAY_MODE_SPECTRUM);
+                return "{\"success\": true, \"message\": \"Switched to spectrum display mode\"}";
+            } else if (mode_str == "lyrics" || mode_str == "歌词") {
+                // Set to lyrics display mode
+                auto esp32_music = static_cast<Esp32Music *>(music);
+                esp32_music->SetDisplayMode(Esp32Music::DISPLAY_MODE_LYRICS);
+                return "{\"success\": true, \"message\": \"Switched to lyrics display mode\"}";
+            } else {
+                return "{\"success\": false, \"message\": \"Invalid display mode, please use 'spectrum' or 'lyrics'\"}";
+            }
+
+            return "{\"success\": false, \"message\": \"Failed to set display mode\"}";
+        });
+#endif
+#if CONFIG_USE_NEWS
+    AddNewsMcpTools();
+#endif
+    AddTool("self.system.switch_4g",
+        "Automatically detect 4G module and then toggle between WiFi/4G mode. "
+        "Return:\n"
+        "  A JSON object that provides the 4G operation status and message.",
+        PropertyList(), [](const PropertyList& properties) {
+            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            XiaoZhiYunliaoS3::BT_STATUS bt_status = board1->SwitchNetwork();
+            // 根据状态码返回相应的JSON响应
+            switch (bt_status) {
+                case XiaoZhiYunliaoS3::BT_STATUS::SUCCESS:
+                    return "{\"success\": true, \"message\": \"operation successful\"}";
+                case XiaoZhiYunliaoS3::BT_STATUS::NO_BT_MODULE:
+                    return "{\"success\": false, \"message\": \"No 4G module installed\"}";
+                default:
+                    return "{\"success\": false, \"message\": \"Unknown error occurred\"}";
+            }
+        });
+#if CONFIG_USE_BLUETOOTH
+    AddTool("self.system.switch_bluetooth",
+        "Switch Bluetooth on or off.\n"
+        "Args:\n"
+        "  `switch_on`: Boolean value to turn Bluetooth on (true) or off (false).\n"
+        "Return:\n"
+        "  A JSON object that provides the Bluetooth operation status and message.",
+        PropertyList({
+            Property("switch_on", kPropertyTypeBoolean)
+        }),
+        [&board](const PropertyList& properties) -> ReturnValue {
+            bool switch_on = properties["switch_on"].value<bool>();
+            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            XiaoZhiYunliaoS3::BT_STATUS bt_status = board1->SwitchBluetooth(switch_on);
+            ESP_LOGI(TAG, "SwitchBluetooth:%d", (int) bt_status);
+
+            // 根据状态码返回相应的JSON响应
+            switch (bt_status) {
+                case XiaoZhiYunliaoS3::BT_STATUS::SUCCESS:
+                    return "{\"success\": true, \"message\": \"Bluetooth operation successful\"}";
+                case XiaoZhiYunliaoS3::BT_STATUS::ALREADY_STARTED:
+                    return "{\"success\": false, \"message\": \"Bluetooth is already on\"}";
+                case XiaoZhiYunliaoS3::BT_STATUS::ALREADY_STOPPED:
+                    return "{\"success\": false, \"message\": \"Bluetooth is already off\"}";
+                case XiaoZhiYunliaoS3::BT_STATUS::NO_BT_MODULE:
+                    return "{\"success\": false, \"message\": \"No Bluetooth module installed\"}";
+                default:
+                    return "{\"success\": false, \"message\": \"Unknown error occurred\"}";
+            }
+        });
+#endif
+    // System control tools
     AddTool("self.system.set_aec",
-        "Enable or disable voice interruption mode (AEC). When enabled, the device can detect voice interruptions and respond accordingly.",
+        "Enable or disable voice interruption mode (AEC:Acoustic Echo Cancellation). When enabled, the device can detect voice interruptions and respond accordingly.",
         PropertyList({
             Property("enable", kPropertyTypeBoolean)
         }), [](const PropertyList& properties) {
@@ -203,17 +301,23 @@ void McpServer::AddCommonTools() {
         "Power off the device after 1-second delay,Requires user confirmation before execution.",
         PropertyList(), [this](const PropertyList& properties) {
             ESP_LOGI("McpTools", "Delaying power off for 1 seconds");
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
-            board1->Sleep();
+            auto& app = Application::GetInstance();
+            app.Schedule([&app]() {
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+                board1->Sleep();
+            });
             return true;
         });
     AddTool("self.system.restart",
         "Restart the device after 1-second delay,Requires user confirmation before execution.",
         PropertyList(), [this](const PropertyList& properties) {
             ESP_LOGI("McpTools", "Delaying restart for 1 seconds");
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            esp_restart();
+            auto& app = Application::GetInstance();
+            app.Schedule([&app]() {
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                esp_restart();
+            });
             return true;
         });
     // display tools
@@ -319,95 +423,6 @@ void McpServer::AddCommonTools() {
             // app.alarm_m_->SetAlarm(seconde_from_now, alarm_name);
             // return "{\"success\": true, \"message\": \"Alarm set successfully\"}";
         });
-#endif
-#if CONFIG_USE_MUSIC
-    auto music = board.GetMusic();
-    AddTool("self.music.play_song",
-        "Play the specified song. When users request to play music, this tool will automatically retrieve song details and start streaming.\n"
-        "parameter:\n"
-        "  `song_name`: The name of the song to be played.\n"
-        "  `artist_name`: The name of the artist of the song to be played (optional, default is empty string).\n"
-        "return:\n"
-        "  Play status information without confirmation, immediately play the song.",
-        PropertyList({
-            Property("song_name", kPropertyTypeString),//歌曲名称（必需）
-            Property("artist_name", kPropertyTypeString, "")//艺术家名称（可选，默认为空字符串）
-        }),
-        [music](const PropertyList &properties) -> ReturnValue {
-            auto song_name = properties["song_name"].value<std::string>();
-            auto artist_name = properties["artist_name"].value<std::string>();
-            if (!music->Download(song_name, artist_name)) {
-                return "{\"success\": false, \"message\": \"Failed to obtain music resources\"}";
-            }
-            auto download_result = music->GetDownloadResult();
-            // ESP_LOGD(TAG, "Music details result: %s", download_result.c_str());
-            return true;
-        });
-
-    AddTool("self.music.set_display_mode",
-        "Set the display mode for music playback. You can choose to display the spectrum or lyrics, for example, if the user says' open spectrum 'or' display spectrum ', the corresponding display mode will be set for' open lyrics' or 'display lyrics'.\n"
-        "parameter:\n"
-        "  `mode`: Display mode, with optional values of 'spectrum' or 'lyrics'.\n"
-        "return:\n"
-        "  Set result information.",
-        PropertyList({
-            Property("mode", kPropertyTypeString) // Display mode: "spectrum" or "lyrics"
-        }),
-        [music](const PropertyList &properties) -> ReturnValue {
-            auto mode_str = properties["mode"].value<std::string>();
-
-            // Convert to lowercase for comparison
-            std::transform(mode_str.begin(), mode_str.end(), mode_str.begin(), ::tolower);
-
-            if (mode_str == "spectrum" || mode_str == "频谱") {
-                // Set to spectrum display mode
-                auto esp32_music = static_cast<Esp32Music *>(music);
-                    esp32_music->SetDisplayMode(Esp32Music::DISPLAY_MODE_SPECTRUM);
-                return "{\"success\": true, \"message\": \"Switched to spectrum display mode\"}";
-            } else if (mode_str == "lyrics" || mode_str == "歌词") {
-                // Set to lyrics display mode
-                auto esp32_music = static_cast<Esp32Music *>(music);
-                esp32_music->SetDisplayMode(Esp32Music::DISPLAY_MODE_LYRICS);
-                return "{\"success\": true, \"message\": \"Switched to lyrics display mode\"}";
-            } else {
-                return "{\"success\": false, \"message\": \"Invalid display mode, please use 'spectrum' or 'lyrics'\"}";
-            }
-
-            return "{\"success\": false, \"message\": \"Failed to set display mode\"}";
-        });
-#endif
-#if CONFIG_USE_NEWS
-    AddNewsMcpTools();
-#endif
-#if CONFIG_USE_BLUETOOTH
-AddTool("self.system.switch_bluetooth",
-    "Switch Bluetooth on or off.\n"
-    "Args:\n"
-    "  `switch_on`: Boolean value to turn Bluetooth on (true) or off (false).\n"
-    "Return:\n"
-    "  A JSON object that provides the Bluetooth operation status and message.",
-    PropertyList({
-        Property("switch_on", kPropertyTypeBoolean)
-    }),
-    [&board](const PropertyList& properties) -> ReturnValue {
-        bool switch_on = properties["switch_on"].value<bool>();
-        auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
-        XiaoZhiYunliaoS3::BT_STATUS bt_status = board1->SwitchBluetooth(switch_on);
-        ESP_LOGI(TAG, "SwitchBluetooth:%d", (int) bt_status);
-
-        // 根据状态码返回相应的JSON响应
-        switch (bt_status) {
-            case XiaoZhiYunliaoS3::BT_STATUS::SUCCESS:
-                return "{\"success\": true, \"message\": \"Bluetooth operation successful\"}";
-            case XiaoZhiYunliaoS3::BT_STATUS::ALREADY_STARTED:
-                return "{\"success\": false, \"message\": \"Bluetooth is already on\"}";
-            case XiaoZhiYunliaoS3::BT_STATUS::ALREADY_STOPPED:
-                return "{\"success\": false, \"message\": \"Bluetooth is already off\"}";
-            case XiaoZhiYunliaoS3::BT_STATUS::NO_BT_MODULE:
-                return "{\"success\": false, \"message\": \"No Bluetooth module installed\"}";
-        }
-        return "{\"success\": false, \"message\": \"Unknown error occurred\"}";
-    });
 #endif
 
     // Restore the original tools list to the end of the tools list

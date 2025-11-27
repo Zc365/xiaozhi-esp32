@@ -75,7 +75,7 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
     InitializePowerSaveTimer();
 
 #if CONFIG_USE_BLUETOOTH
-    bt_emitter_= new BT_Emitter(UART_NUM_1, ML307_RX_PIN, ML307_TX_PIN, MON_BTLINK_PIN);
+    bt_emitter_= new BT_Emitter(UART_NUM_1, ML307_RX_PIN, ML307_TX_PIN);
     bt_emitter_->setStatusCallback([this](int status){
         switch (status) {
             case BT_Emitter::BT_CONNECTED:
@@ -278,8 +278,9 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
 }
 
 #if CONFIG_USE_BLUETOOTH
+    //AI指令开启/关闭蓝牙
     XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchBluetooth(bool switch_on){
-        if (switch_on) {
+        if (switch_on) {//开启蓝牙
             if (bt_emitter_->checkStarted()) {
                 // 已开启蓝牙
                 return BT_STATUS::ALREADY_STARTED;
@@ -287,22 +288,21 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
                 getPowerManager()->Start4G();
                 BT_Emitter::modultype modultype = bt_emitter_->checkBTModul();
                 if (modultype == BT_Emitter::modultype::MODUL_BT) {
-                    // 开启蓝牙
-                    bt_emitter_->start();
+                    bt_emitter_->start();//启动蓝牙扫描
                     display_->ShowBT(true);
                     return BT_STATUS::SUCCESS;
                 } else {
                     // 未安装蓝牙模块
                     bt_emitter_->stop();
+                    switchBtMode(false);
                     getPowerManager()->Shutdown4G();
                     return BT_STATUS::NO_BT_MODULE;
                 }
             }
-        } else {
+        } else {//关闭蓝牙
             if (bt_emitter_->checkStarted()) {
-                // 关闭蓝牙
-                display_->ShowBT(false);
                 bt_emitter_->stop();
+                switchBtMode(false);
                 getPowerManager()->Shutdown4G();
                 return BT_STATUS::SUCCESS;
             } else {
@@ -314,24 +314,25 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     }
 #endif
 
-bool XiaoZhiYunliaoS3::SwitchNetwork() {
+//手工切换网络
+XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
 #if CONFIG_USE_BLUETOOTH
-    if(GetNetworkType() == NetworkType::ML307){
-        //4G已开机
+    if(GetNetworkType() == NetworkType::ML307){ //4G已开机，则关机4G
         SwitchNetworkType();
-        return true;
+        return BT_STATUS::SUCCESS;
     }
     if(bt_emitter_->checkStarted()){//已开启蓝牙
-        bt_emitter_->stop();//关蓝牙，打开AEC
-        getPowerManager()->Shutdown4G();
+        bt_emitter_->stop();
         switchBtMode(false);
-        ESP_LOGI(TAG, "蓝牙已手动关闭");
-        return true;
-    }else if(getPowerManager()->Get4GLevel() == 1){//未装蓝牙，且开启开关
         getPowerManager()->Shutdown4G();
-        display_->ShowBT(false);
+        ESP_LOGI(TAG, "蓝牙已手动关闭");
+        return BT_STATUS::SUCCESS;
+    }else if(getPowerManager()->Get4GLevel() == 1){//未装蓝牙，且开启开关
+        bt_emitter_->stop();
+        switchBtMode(false);
+        getPowerManager()->Shutdown4G();
         ESP_LOGI(TAG, "4G/蓝牙已手动关闭");
-        return true;
+        return BT_STATUS::SUCCESS;
     }else{//开启开关
         getPowerManager()->Start4G();
         BT_Emitter::modultype modultype = bt_emitter_->getModulType();
@@ -340,36 +341,35 @@ bool XiaoZhiYunliaoS3::SwitchNetwork() {
         }
         if (modultype == BT_Emitter::modultype::MODUL_4G) {
             SwitchNetworkType();
-            return true;
+            return BT_STATUS::SUCCESS;
         }else if (modultype == BT_Emitter::modultype::MODUL_BT) {
-            ESP_LOGI(TAG, "启动蓝牙...");
             bt_emitter_->start();//启动蓝牙扫描
             display_->ShowBT(true);
             ESP_LOGI(TAG, "蓝牙已手动开启");
-            return true;
+            return BT_STATUS::SUCCESS;
         }
-        return false;
+        bt_emitter_->stop();
+        switchBtMode(false);
+        getPowerManager()->Shutdown4G();
+        return BT_STATUS::NO_BT_MODULE;;
     }
 #else
     SwitchNetworkType();
-    return true;
+    return BT_STATUS::SUCCESS;
 #endif
 }
 
 void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
     auto& app = Application::GetInstance();
     auto codec = static_cast<Es8388AudioCodec*>(GetAudioCodec());
-    
-    if (enable) {
-        // 启用蓝牙模式
+    if (enable) { // 启用蓝牙模式
         if(app.GetAecMode() != kAecOff){
             switchAecMode(kAecOff);
             display_->ShowAEC(false);
         }
         codec->EnablePA(false);
         display_->ShowBT(true);
-    } else {
-        // 禁用蓝牙模式
+    } else { // 禁用蓝牙模式
         display_->ShowBT(false);
         Settings settings("aec", false);
         int storedMode = settings.GetInt("mode", kAecOnDeviceSide);

@@ -389,9 +389,8 @@ void XiaoziyunliaoDisplay::UpdateIdleScreen() {
 }
 
 void XiaoziyunliaoDisplay::ShowStandbyScreen(bool show) {
+    DisplayLockGuard lock(this);
     if (tabview_) {
-        // 在切换标签页前加锁，防止异常
-        lv_lock();
         if (show){
             lv_tabview_set_act(tabview_, (uint32_t) PageIndex::PAGE_IDLE, LV_ANIM_OFF);
             if (!idle_timer_created_) {
@@ -404,7 +403,6 @@ void XiaoziyunliaoDisplay::ShowStandbyScreen(bool show) {
         } else {
             lv_tabview_set_act(tabview_, (uint32_t) PageIndex::PAGE_CHAT, LV_ANIM_OFF);
         }
-        lv_unlock();
     }
 }
 

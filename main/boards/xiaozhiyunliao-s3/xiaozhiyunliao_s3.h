@@ -57,7 +57,7 @@ public:
     void switchAecMode(AecMode mode);
     void switchAecMode(bool enable);
     void switchBtMode(bool enable);
-    bool SwitchNetwork();
+    XiaoZhiYunliaoS3::BT_STATUS SwitchNetwork();
 #if CONFIG_USE_BLUETOOTH
     BT_Emitter* GetBTEmitter(){ return bt_emitter_; } ;
     BT_STATUS SwitchBluetooth(bool switch_on);
