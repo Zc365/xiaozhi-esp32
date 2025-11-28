@@ -60,7 +60,7 @@ void AfeAudioProcessor::Initialize(AudioCodec* codec, int frame_duration_ms) {
     afe_config->vad_init = true;
 #endif
 
-    afe_iface_ = esp_afe_handle_from_config(afe_config);
+    afe_iface_ = const_cast<esp_afe_sr_iface_t*>(esp_afe_handle_from_config(afe_config));
     afe_data_ = afe_iface_->create_from_config(afe_config);
     
     xTaskCreate([](void* arg) {

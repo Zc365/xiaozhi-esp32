@@ -682,7 +682,7 @@ void Application::OnWakeWordDetected() {
             protocol_->SendAudio(std::move(packet));
         }
         // Set the chat state to wake word detected
-        protocol_->SendWakeWordDetected(wake_word);
+        protocol_->SendWakeWordDetected(Lang::Strings::WAKE_WORD);
         SetListeningMode(aec_mode_ == kAecOff ? kListeningModeAutoStop : kListeningModeRealtime);
 #else
         SetListeningMode(aec_mode_ == kAecOff ? kListeningModeAutoStop : kListeningModeRealtime);

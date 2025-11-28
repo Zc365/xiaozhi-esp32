@@ -321,7 +321,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
         ESP_LOGI(TAG, "Button OnFiveClick");
         if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
             Settings settings("display", true);
-            bool currentIpsMode = settings.GetBool("ips_mode", false);
+            bool currentIpsMode = settings.GetBool("ips_mode", DISPLAY_INVERT_COLOR);
             settings.SetBool("ips_mode", !currentIpsMode);
             ESP_LOGI(TAG, "IPS mode toggled to %s", !currentIpsMode ? "enabled" : "disabled");
             vTaskDelay(pdMS_TO_TICKS(1000));

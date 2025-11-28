@@ -62,7 +62,7 @@ void CustomWakeWord::Initialize(AudioCodec* codec) {
     afe_config->afe_perferred_priority = 1;
     afe_config->memory_alloc_mode = AFE_MEMORY_ALLOC_MORE_PSRAM;
     
-    afe_iface_ = esp_afe_handle_from_config(afe_config);
+    afe_iface_ = const_cast<esp_afe_sr_iface_t*>(esp_afe_handle_from_config(afe_config));
     afe_data_ = afe_iface_->create_from_config(afe_config);
 
     xTaskCreate([](void* arg) {

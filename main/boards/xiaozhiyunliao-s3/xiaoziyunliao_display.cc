@@ -330,7 +330,7 @@ void XiaoziyunliaoDisplay::UpdateIdleScreen() {
     time(&now);
     localtime_r(&now, &timeinfo);
     
-    lv_lock();
+    DisplayLockGuard lock(this);
     // 更新时间
     if (hour_label_) {
         char hour_str[6];
@@ -446,14 +446,12 @@ void XiaoziyunliaoDisplay::UpdateIdleScreen() {
         }
     }
 #endif
-    lv_unlock();
-
 }
 
 void XiaoziyunliaoDisplay::ShowStandbyScreen(bool show) {
     if (tabview_) {
         // 在切换标签页前加锁，防止异常
-        lv_lock();
+        DisplayLockGuard lock(this);
         if (show){
             lv_tabview_set_act(tabview_, (uint32_t) PageIndex::PAGE_IDLE, LV_ANIM_OFF);
             if (!idle_timer_created_) {
@@ -466,7 +464,6 @@ void XiaoziyunliaoDisplay::ShowStandbyScreen(bool show) {
         } else {
             lv_tabview_set_act(tabview_, (uint32_t) PageIndex::PAGE_CHAT, LV_ANIM_OFF);
         }
-        lv_unlock();
     }
 }
 
