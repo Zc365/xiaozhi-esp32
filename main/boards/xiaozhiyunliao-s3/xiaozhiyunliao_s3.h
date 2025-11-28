@@ -10,9 +10,11 @@
 #include "xiaoziyunliao_display.h"
 #include "power_save_timer.h"
 #include "power_manager.h"
-#include "BT_Emitter.h"
+#if CONFIG_USE_BLUETOOTH
+    #include "BT_Emitter.h"
+#endif
 
-class XiaoziyunliaoDisplay;
+// class XiaoziyunliaoDisplay;
 
 class XiaoZhiYunliaoS3 : public DualNetworkBoard {
 private:

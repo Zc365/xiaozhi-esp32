@@ -80,7 +80,7 @@ void PowerManager::Initialize(){
     // 添加中断处理
     ESP_ERROR_CHECK(gpio_isr_handler_add(MON_BATT_PIN, batt_mon_isr_handler, (void*)MON_BATT_PIN));
      // 创建监控任务
-    xTaskCreate(&batt_mon_task, "batt_mon_task", 2048, NULL, 10, NULL);
+    xTaskCreate(&batt_mon_task, "batt_mon_task", 1024, NULL, 10, NULL);
 
     // 初始化监测引脚
     gpio_config_t mon_conf = {};
@@ -163,10 +163,31 @@ void PowerManager::Shutdown5V() {
 
 void PowerManager::Start4G() {
     gpio_set_level(BOOT_4G_PIN, 1);
+    
+    // 重置ML307_RX_PIN和ML307_TX_PIN，移除Shutdown4G中的配置
+    gpio_reset_pin(ML307_RX_PIN);
+    gpio_reset_pin(ML307_TX_PIN);
+    
+    is_4g_on_ = 1;
 }
+
 
 void PowerManager::Shutdown4G() {
     gpio_set_level(BOOT_4G_PIN, 0);
+    
+    // 配置ML307_RX_PIN和ML307_TX_PIN为下拉输出，并设置为0
+    gpio_config_t io_conf_ml307 = {
+        .pin_bit_mask = (1ULL << ML307_RX_PIN) | (1ULL << ML307_TX_PIN),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_ENABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    ESP_ERROR_CHECK(gpio_config(&io_conf_ml307));
+    
+    gpio_set_level(ML307_RX_PIN, 0);
+    gpio_set_level(ML307_TX_PIN, 0);
+    is_4g_on_ = 0;
 }
 
 void PowerManager::MCUSleep() {
