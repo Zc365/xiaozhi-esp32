@@ -69,7 +69,7 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
     if(GetAudioCodec()->output_volume() == 0){
         GetAudioCodec()->SetOutputVolume(70);
     }
-    if(GetBacklight()->brightness() == 0){
+    if(GetBacklight()->RestoreBrightness() < 5){
         GetBacklight()->SetBrightness(60);
     }
     InitializePowerSaveTimer();
@@ -102,14 +102,12 @@ void XiaoZhiYunliaoS3::InitializePowerSaveTimer() {
         // ESP_LOGI(TAG, "Enabling idle mode");
 #if CONFIG_USE_MUSIC
         auto music = GetMusic();
-        if (!music->IsDownloading()) {
-            GetDisplay()->ShowStandbyScreen(true);
-            GetBacklight()->SetBrightness(30);
+        if (music->IsDownloading()) {
+            return; // 音乐下载中，不进入待机模式
         }
-#else
-        GetDisplay()->ShowStandbyScreen(true);
-        GetBacklight()->SetBrightness(30);
 #endif
+        GetDisplay()->ShowStandbyScreen(true);
+        GetBacklight()->SetBrightness(GetBacklight()->brightness() / 2);
     });
     power_save_timer_->OnExitSleepMode([this]() {
         // ESP_LOGI(TAG, "Exit idle mode");
@@ -266,13 +264,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     boot_button_.OnFiveClick([this]() {
         ESP_LOGI(TAG, "Button OnFiveClick");
         if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
-            Settings settings("display", true);
-            bool currentIpsMode = settings.GetBool("ips_mode", false);
-            settings.SetBool("ips_mode", !currentIpsMode);
-            ESP_LOGI(TAG, "IPS mode toggled to %s", !currentIpsMode ? "enabled" : "disabled");
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            auto& app = Application::GetInstance();
-            app.Reboot();
+            switchTFT();
         }
     });
 }
@@ -396,6 +388,16 @@ void XiaoZhiYunliaoS3::switchAecMode(AecMode mode) {
     }
 }
 
+void XiaoZhiYunliaoS3::switchTFT() {
+    Settings settings("display", true);
+    bool currentIpsMode = settings.GetBool("ips_mode", false);
+    settings.SetBool("ips_mode", !currentIpsMode);
+    ESP_LOGI(TAG, "IPS mode toggled to %s", !currentIpsMode ? "enabled" : "disabled");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    auto& app = Application::GetInstance();
+    app.Reboot();
+}
+
 void XiaoZhiYunliaoS3::switchAecMode(bool enable) {
     AecMode newMode = enable ? kAecOnDeviceSide : kAecOff;
     switchAecMode(newMode);
@@ -432,11 +434,8 @@ void XiaoZhiYunliaoS3::Sleep() {
     Settings settings("board", true);
     settings.SetInt("sleep_flag", 1);
 
-    Application::GetInstance().StopListening();
-    if (auto* codec = GetAudioCodec()) {
-        codec->EnableOutput(false);
-        codec->EnableInput(false);
-    }
+    auto& app = Application::GetInstance();
+    app.Close();
     GetBacklight()->SetBrightness(0);
     if (panel) {
         esp_lcd_panel_disp_on_off(panel, false);

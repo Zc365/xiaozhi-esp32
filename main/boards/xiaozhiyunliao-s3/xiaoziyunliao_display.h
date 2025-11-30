@@ -91,6 +91,7 @@ protected:
     std::mutex status_mutex_;
     std::string current_status_ = "";
     bool idle_timer_created_ = false;
+    int city_code_fail_count_ = 0;
     static void UpdateIdleScreenCallback(lv_timer_t* t); 
     void UpdateIdleScreen();
 };

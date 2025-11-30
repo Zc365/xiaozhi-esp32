@@ -837,6 +837,15 @@ void Application::Reboot() {
     esp_restart();
 }
 
+void Application::Close() {
+    // Disconnect the audio channel
+    if (protocol_ && protocol_->IsAudioChannelOpened()) {
+        protocol_->CloseAudioChannel();
+    }
+    protocol_.reset();
+    audio_service_.Stop();
+}
+
 bool Application::UpgradeFirmware(Ota& ota, const std::string& url) {
     auto& board = Board::GetInstance();
     auto display = board.GetDisplay();

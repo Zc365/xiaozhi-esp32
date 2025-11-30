@@ -29,10 +29,10 @@ Backlight::~Backlight() {
     }
 }
 
-void Backlight::RestoreBrightness() {
+uint8_t Backlight::RestoreBrightness() {
     // Load brightness from settings
     Settings settings("display");  
-    int saved_brightness = settings.GetInt("brightness", 75);
+    int saved_brightness = settings.GetInt("brightness", 60);
     
     // 检查亮度值是否为0或过小，设置默认值
     if (saved_brightness <= 0) {
@@ -41,6 +41,7 @@ void Backlight::RestoreBrightness() {
     }
     
     SetBrightness(saved_brightness);
+    return saved_brightness;
 }
 
 void Backlight::SetBrightness(uint8_t brightness, bool permanent) {

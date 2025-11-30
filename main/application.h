@@ -73,6 +73,7 @@ public:
 #if CONFIG_USE_MUSIC
     void AddAudioData(AudioStreamPacket&& packet);
 #endif
+    void Close();
     void PlaySound(const std::string_view& sound);
     AudioService& GetAudioService() { return audio_service_; }
 

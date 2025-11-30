@@ -12,7 +12,7 @@ public:
     Backlight();
     ~Backlight();
 
-    void RestoreBrightness();
+    uint8_t RestoreBrightness();
     void SetBrightness(uint8_t brightness, bool permanent = false);
     inline uint8_t brightness() const { return brightness_; }
 

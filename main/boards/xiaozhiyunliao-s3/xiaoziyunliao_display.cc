@@ -319,14 +319,27 @@ void XiaoziyunliaoDisplay::UpdateIdleScreen() {
         }
         
         int32_t last_city_code = weatherinfo.city_code;
-        // ESP_LOGI(TAG, "last_city_code: %ld", weatherinfo.city_code);
+        // 检查是否需要使用默认城市代码
+        if (city_code == -1 && city_code_fail_count_ >= 10) {
+            ESP_LOGI(TAG, "Using default city code 101020100 after 10 failures");
+            city_code = 101020100;
+            last_city_code = city_code;//用于跳过保存城市信息
+        }
+
         WeatherInfo weatherinfo = WeatherForecast::GetInstance().GetWeatherForecast(
             Board::GetInstance().GetNetwork()->CreateHttp(0), city_code);
 
-        if(weatherinfo.city_code > 0 && (weatherinfo.city_code != last_city_code)){
-            ESP_LOGI(TAG, "save city_code: %ld", weatherinfo.city_code);
-            settings.SetInt("city_code", weatherinfo.city_code);
+        if (weatherinfo.city_code == -1) {
+            city_code_fail_count_++;
+            ESP_LOGI(TAG, "city_code is -1, fail count: %d", city_code_fail_count_);
+        } else {
+            city_code_fail_count_ = 0;// 如果city_code不为-1，重置计数器
+            if(weatherinfo.city_code != last_city_code){
+                ESP_LOGI(TAG, "save city_code: %ld", weatherinfo.city_code);
+                settings.SetInt("city_code", weatherinfo.city_code);
+            }
         }
+
         if(weatherinfo.city_code > 0 && weatherinfo.update_time > 0){
             // 更新城市
             if (city_label_) {
