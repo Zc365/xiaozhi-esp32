@@ -350,7 +350,7 @@ XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
     return BT_STATUS::SUCCESS;
 #endif
 }
-
+#if CONFIG_USE_BLUETOOTH
 void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
     auto& app = Application::GetInstance();
     auto codec = static_cast<Es8388AudioCodec*>(GetAudioCodec());
@@ -372,7 +372,7 @@ void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
         codec->EnablePA(true);
     }
 }
-
+#endif
 void XiaoZhiYunliaoS3::switchAecMode(AecMode mode) {
     auto& app = Application::GetInstance();
     app.StopListening();

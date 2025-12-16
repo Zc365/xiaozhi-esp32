@@ -1121,13 +1121,17 @@ void LcdDisplay::SetTheme(Theme* theme) {
         lv_obj_set_style_text_font(mute_label_, large_icon_font, 0);
         lv_obj_set_style_text_font(battery_label_, large_icon_font, 0);
         lv_obj_set_style_text_font(network_label_, large_icon_font, 0);
+#if CONFIG_USE_BLUETOOTH        
         lv_obj_set_style_text_font(bt_label_, large_icon_font, 0);
+#endif
         lv_obj_set_style_text_font(aec_label_, large_icon_font, 0);
     } else {
         lv_obj_set_style_text_font(mute_label_, icon_font, 0);
         lv_obj_set_style_text_font(battery_label_, icon_font, 0);
         lv_obj_set_style_text_font(network_label_, icon_font, 0);
+#if CONFIG_USE_BLUETOOTH
         lv_obj_set_style_text_font(bt_label_, icon_font, 0);
+#endif
         lv_obj_set_style_text_font(aec_label_, icon_font, 0);
     }
 
@@ -1156,7 +1160,9 @@ void LcdDisplay::SetTheme(Theme* theme) {
     lv_obj_set_style_text_color(notification_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(mute_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(battery_label_, lvgl_theme->text_color(), 0);
+#if CONFIG_USE_BLUETOOTH
     lv_obj_set_style_text_color(bt_label_, lvgl_theme->text_color(), 0);
+#endif
     lv_obj_set_style_text_color(aec_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(emoji_label_, lvgl_theme->text_color(), 0);
 
