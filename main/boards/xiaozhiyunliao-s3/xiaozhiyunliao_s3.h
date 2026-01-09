@@ -10,9 +10,7 @@
 #include "xiaoziyunliao_display.h"
 #include "power_save_timer.h"
 #include "power_manager.h"
-#if CONFIG_USE_BLUETOOTH
-    #include "BT_Emitter.h"
-#endif
+#include "BT_Emitter.h"
 
 // class XiaoziyunliaoDisplay;
 
@@ -22,9 +20,7 @@ private:
     Button boot_button_;
     PowerSaveTimer* power_save_timer_;
     PowerManager* power_manager_;
-#if CONFIG_USE_BLUETOOTH
     BT_Emitter* bt_emitter_;
-#endif
     
     XiaoziyunliaoDisplay* display_;
     void InitializeSpi();
@@ -59,10 +55,8 @@ public:
     void switchBtMode(bool enable);
     void switchTFT();
     XiaoZhiYunliaoS3::BT_STATUS SwitchNetwork();
-#if CONFIG_USE_BLUETOOTH
     BT_Emitter* GetBTEmitter(){ return bt_emitter_; } ;
     BT_STATUS SwitchBluetooth(bool switch_on);
-#endif
 };
 
 #endif // XIAOZHIYUNLIAO_S3_H

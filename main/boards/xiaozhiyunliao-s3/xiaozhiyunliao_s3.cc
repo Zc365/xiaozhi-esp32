@@ -74,8 +74,8 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
     }
     InitializePowerSaveTimer();
 
-#if CONFIG_USE_BLUETOOTH
     bt_emitter_= new BT_Emitter(UART_NUM_1, ML307_RX_PIN, ML307_TX_PIN);
+#if CONFIG_USE_BLUETOOTH
     bt_emitter_->setStatusCallback([this](int status){
         switch (status) {
             case BT_Emitter::BT_CONNECTED:
@@ -90,7 +90,6 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
                 ESP_LOGI(TAG, "蓝牙未安装");
         }
     });
-    ESP_LOGI(TAG, "BT_Emitter reg");
 #endif
     ESP_LOGI(TAG, "Inited");
 }
@@ -269,6 +268,59 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     });
 }
 
+//手工切换网络
+XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
+    if(GetNetworkType() == NetworkType::ML307){ //4G已开机，则关机4G
+        SwitchNetworkType();
+        return BT_STATUS::SUCCESS;
+    }
+#if CONFIG_USE_BLUETOOTH
+    if(bt_emitter_->checkStarted()){//已开启蓝牙
+        bt_emitter_->stop();
+        switchBtMode(false);
+        getPowerManager()->Shutdown4G();
+        ESP_LOGI(TAG, "蓝牙已手动关闭");
+        return BT_STATUS::SUCCESS;
+    }else if(getPowerManager()->Get4GLevel() == 1){//未装蓝牙，且开启开关
+        bt_emitter_->stop();
+        switchBtMode(false);
+        getPowerManager()->Shutdown4G();
+        ESP_LOGI(TAG, "4G/蓝牙已手动关闭");
+        return BT_STATUS::SUCCESS;
+    }else{//开启开关
+        getPowerManager()->Start4G();
+        BT_Emitter::modultype modultype = bt_emitter_->getModulType();
+        if (modultype == BT_Emitter::modultype::MODUL_NONE) {
+            modultype = bt_emitter_->checkALLModul();
+        }
+        if (modultype == BT_Emitter::modultype::MODUL_4G) {
+            SwitchNetworkType();
+            return BT_STATUS::SUCCESS;
+        }else if (modultype == BT_Emitter::modultype::MODUL_BT) {
+            bt_emitter_->start();//启动蓝牙扫描
+            display_->ShowBT(true);
+            ESP_LOGI(TAG, "蓝牙已手动开启");
+            return BT_STATUS::SUCCESS;
+        }
+        bt_emitter_->stop();
+        switchBtMode(false);
+        getPowerManager()->Shutdown4G();
+        return BT_STATUS::NO_BT_MODULE;;
+    }
+#else
+    // 检测模块类型，如果是4G模块则切换网络类型
+    getPowerManager()->Start4G();
+    BT_Emitter::modultype modultype = bt_emitter_->check4GModul();
+    if (modultype == BT_Emitter::modultype::MODUL_4G) {
+        SwitchNetworkType();
+        return BT_STATUS::SUCCESS;
+    }else{
+        getPowerManager()->Shutdown4G();
+        return BT_STATUS::NO_BT_MODULE;
+    }
+#endif
+}
+
 #if CONFIG_USE_BLUETOOTH
     //AI指令开启/关闭蓝牙
     XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchBluetooth(bool switch_on){
@@ -304,53 +356,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
             }
         }
     }
-#endif
 
-//手工切换网络
-XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
-#if CONFIG_USE_BLUETOOTH
-    if(GetNetworkType() == NetworkType::ML307){ //4G已开机，则关机4G
-        SwitchNetworkType();
-        return BT_STATUS::SUCCESS;
-    }
-    if(bt_emitter_->checkStarted()){//已开启蓝牙
-        bt_emitter_->stop();
-        switchBtMode(false);
-        getPowerManager()->Shutdown4G();
-        ESP_LOGI(TAG, "蓝牙已手动关闭");
-        return BT_STATUS::SUCCESS;
-    }else if(getPowerManager()->Get4GLevel() == 1){//未装蓝牙，且开启开关
-        bt_emitter_->stop();
-        switchBtMode(false);
-        getPowerManager()->Shutdown4G();
-        ESP_LOGI(TAG, "4G/蓝牙已手动关闭");
-        return BT_STATUS::SUCCESS;
-    }else{//开启开关
-        getPowerManager()->Start4G();
-        BT_Emitter::modultype modultype = bt_emitter_->getModulType();
-        if (modultype == BT_Emitter::modultype::MODUL_NONE) {
-            modultype = bt_emitter_->checkALLModul();
-        }
-        if (modultype == BT_Emitter::modultype::MODUL_4G) {
-            SwitchNetworkType();
-            return BT_STATUS::SUCCESS;
-        }else if (modultype == BT_Emitter::modultype::MODUL_BT) {
-            bt_emitter_->start();//启动蓝牙扫描
-            display_->ShowBT(true);
-            ESP_LOGI(TAG, "蓝牙已手动开启");
-            return BT_STATUS::SUCCESS;
-        }
-        bt_emitter_->stop();
-        switchBtMode(false);
-        getPowerManager()->Shutdown4G();
-        return BT_STATUS::NO_BT_MODULE;;
-    }
-#else
-    SwitchNetworkType();
-    return BT_STATUS::SUCCESS;
-#endif
-}
-#if CONFIG_USE_BLUETOOTH
 void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
     auto& app = Application::GetInstance();
     auto codec = static_cast<Es8388AudioCodec*>(GetAudioCodec());
@@ -373,6 +379,7 @@ void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
     }
 }
 #endif
+
 void XiaoZhiYunliaoS3::switchAecMode(AecMode mode) {
     auto& app = Application::GetInstance();
     app.StopListening();

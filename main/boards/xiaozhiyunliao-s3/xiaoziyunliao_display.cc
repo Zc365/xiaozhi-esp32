@@ -745,6 +745,19 @@ void XiaoziyunliaoDisplay::SetTheme(Theme* theme) {
     lv_obj_set_style_text_font(tab_idle, lvgl_theme->text_font()->font(), 0);
     lv_obj_set_style_text_color(tab_idle, lv_color_white(), 0);
     lv_obj_set_style_bg_color(tab_idle, lv_color_black(), 0);
+    
+    if (status_bar_) {
+        lv_obj_set_style_text_color(status_bar_, lvgl_theme->text_color(), 0);
+        lv_obj_set_style_bg_color(status_bar_, lvgl_theme->background_color(), 0);
+    }
+    if (chat_container_) {
+        lv_obj_set_style_text_color(chat_container_, lvgl_theme->text_color(), 0);
+        lv_obj_set_style_bg_color(chat_container_, lvgl_theme->background_color(), 0);
+    }
+    if (content_) {
+        lv_obj_set_style_text_color(content_, lvgl_theme->text_color(), 0);
+        lv_obj_set_style_bg_color(content_, lvgl_theme->background_color(), 0);
+    }
 }
 
 void XiaoziyunliaoDisplay::showUI() {
