@@ -76,7 +76,10 @@ void PowerManager::Initialize(){
     // 创建电量GPIO事件队列
     gpio_evt_queue = xQueueCreate(1, sizeof(uint32_t));
     // 安装电量GPIO ISR服务
-    ESP_ERROR_CHECK(gpio_install_isr_service(0));
+    esp_err_t ret = gpio_install_isr_service(0);
+    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "Failed to install GPIO ISR service");
+    }
     // 添加中断处理
     ESP_ERROR_CHECK(gpio_isr_handler_add(MON_BATT_PIN, batt_mon_isr_handler, (void*)MON_BATT_PIN));
      // 创建监控任务

@@ -10,31 +10,51 @@
 #include "xiaoziyunliao_display.h"
 #include "power_save_timer.h"
 #include "power_manager.h"
-#include "BT_Emitter.h"
 
 // class XiaoziyunliaoDisplay;
 
 class XiaoZhiYunliaoS3 : public DualNetworkBoard {
 private:
+    enum modultype { MODUL_NONE = 0, MODUL_BT = 1, MODUL_4G = 2 };
+
     i2c_master_bus_handle_t codec_i2c_bus_;
     Button boot_button_;
     PowerSaveTimer* power_save_timer_;
     PowerManager* power_manager_;
-    BT_Emitter* bt_emitter_;
     
     XiaoziyunliaoDisplay* display_;
+    
+    uart_port_t uart_num_;
+    QueueHandle_t uart_queue_;
+    bool isInstallUart_;
+    char *chbuf_;
+    const uint16_t chbufSize_ = 64;
+    
     void InitializeSpi();
     void InitializeLCDDisplay();
     void InitializeI2c();
     void InitializeButtons();
     void InitializePowerSaveTimer();
-
+    void InitializeBTEmitter();
+    
+    modultype check4GModul();
+    modultype checkModuleWithCommand(const char *command, int baudrate, int64_t timeout);
+    bool installUart();
+    bool uninstallUart();
+    
+    static void gpioIsrHandler(void *arg);
+    static void gpioTask(void *arg);
+    bool initGPIOLinkPin();
+    void deinitGPIOLinkPin();
+    
+    QueueHandle_t m_gpio_evt_queue = nullptr;
+    TaskHandle_t m_gpio_task_handle = nullptr;
 public:
     enum class BT_STATUS {
         SUCCESS,            // 操作成功
         ALREADY_STARTED,    // 蓝牙已开启
         ALREADY_STOPPED,    // 蓝牙已关闭
-        NO_BT_MODULE,       // 未安装蓝牙模块
+        NO_MODULE,       // 未安装蓝牙模块
     };
 
     XiaoZhiYunliaoS3();
@@ -55,7 +75,6 @@ public:
     void switchBtMode(bool enable);
     void switchTFT();
     XiaoZhiYunliaoS3::BT_STATUS SwitchNetwork();
-    BT_Emitter* GetBTEmitter(){ return bt_emitter_; } ;
     BT_STATUS SwitchBluetooth(bool switch_on);
 };
 

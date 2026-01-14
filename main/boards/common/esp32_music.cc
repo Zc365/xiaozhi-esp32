@@ -398,11 +398,69 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
                         ESP_LOGI(TAG, "Loading lyrics for: %s (lyrics display mode)", song_name.c_str());
                         
                         // 启动歌词下载和显示
-                        if (is_lyric_running_) {
-                            is_lyric_running_ = false;
-                            if (lyric_thread_.joinable()) {
-                                lyric_thread_.join();
+                        is_lyric_running_ = false;
+                        
+                        // 等待之前的歌词线程完全结束
+                        for (int i = 0; i < 10; i++) {
+                            if (!lyric_thread_.joinable()) {
+                                break;
                             }
+                            try {
+                                if (lyric_thread_.joinable()) {
+                                    lyric_thread_.join();
+                                }
+                            } catch (...) {
+                                ESP_LOGW(TAG, "Exception during lyric_thread join");
+                            }
+                            if (!lyric_thread_.joinable()) {
+                                break;
+                            }
+                            try {
+                                if (lyric_thread_.joinable()) {
+                                    lyric_thread_.detach();
+                                }
+                            } catch (...) {
+                                ESP_LOGW(TAG, "Exception during lyric_thread detach");
+                            }
+                            if (!lyric_thread_.joinable()) {
+                                break;
+                            }
+                            vTaskDelay(pdMS_TO_TICKS(10));
+                        }
+                        
+                        // 确保线程不可join
+                        if (lyric_thread_.joinable()) {
+                            try {
+                                lyric_thread_.detach();
+                            } catch (...) {}
+                        }
+                        
+                        // 安全重置线程对象
+                        // 多次尝试确保线程不是joinable
+                        for (int attempt = 0; attempt < 5; attempt++) {
+                            if (!lyric_thread_.joinable()) {
+                                break;
+                            }
+                            ESP_LOGW(TAG, "lyric_thread still joinable, attempt %d/5 to detach", attempt + 1);
+                            try {
+                                if (lyric_thread_.joinable()) {
+                                    lyric_thread_.detach();
+                                }
+                            } catch (...) {}
+                            if (!lyric_thread_.joinable()) {
+                                break;
+                            }
+                            vTaskDelay(pdMS_TO_TICKS(5));
+                        }
+                        
+                        // 最终检查后安全赋值
+                        if (!lyric_thread_.joinable()) {
+                            lyric_thread_ = std::thread();
+                        } else {
+                            // 最后的手段：使用move semantics
+                            ESP_LOGE(TAG, "CRITICAL: lyric_thread still joinable after all attempts");
+                            std::thread new_thread;
+                            lyric_thread_ = std::move(new_thread);
                         }
                         
                         is_lyric_running_ = true;
@@ -463,20 +521,85 @@ bool Esp32Music::StartStreaming(const std::string& music_url) {
     is_downloading_ = false;
     is_playing_ = false;
     
-    // 等待之前的线程完全结束
-    if (download_thread_.joinable()) {
+    // 等待之前的线程完全结束，使用更健壮的循环
+    for (int attempt = 0; attempt < 10; attempt++) {
+        if (!download_thread_.joinable()) {
+            break;
+        }
         {
             std::lock_guard<std::mutex> lock(buffer_mutex_);
             buffer_cv_.notify_all();  // 通知线程退出
         }
-        download_thread_.join();
+        try {
+            if (download_thread_.joinable()) {
+                download_thread_.join();
+            }
+        } catch (...) {}
+        if (!download_thread_.joinable()) {
+            break;
+        }
+        try {
+            if (download_thread_.joinable()) {
+                download_thread_.detach();
+            }
+        } catch (...) {}
+        if (!download_thread_.joinable()) {
+            break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
-    if (play_thread_.joinable()) {
+    
+    // 安全重置download_thread_
+    if (download_thread_.joinable()) {
+        try {
+            download_thread_.detach();
+        } catch (...) {}
+    }
+    if (!download_thread_.joinable()) {
+        download_thread_ = std::thread();
+    } else {
+        std::thread new_thread;
+        download_thread_ = std::move(new_thread);
+    }
+    
+    for (int attempt = 0; attempt < 10; attempt++) {
+        if (!play_thread_.joinable()) {
+            break;
+        }
         {
             std::lock_guard<std::mutex> lock(buffer_mutex_);
             buffer_cv_.notify_all();  // 通知线程退出
         }
-        play_thread_.join();
+        try {
+            if (play_thread_.joinable()) {
+                play_thread_.join();
+            }
+        } catch (...) {}
+        if (!play_thread_.joinable()) {
+            break;
+        }
+        try {
+            if (play_thread_.joinable()) {
+                play_thread_.detach();
+            }
+        } catch (...) {}
+        if (!play_thread_.joinable()) {
+            break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    
+    // 安全重置play_thread_
+    if (play_thread_.joinable()) {
+        try {
+            play_thread_.detach();
+        } catch (...) {}
+    }
+    if (!play_thread_.joinable()) {
+        play_thread_ = std::thread();
+    } else {
+        std::thread new_thread;
+        play_thread_ = std::move(new_thread);
     }
     
     // 清空缓冲区
@@ -535,14 +658,49 @@ bool Esp32Music::StopStreaming() {
         buffer_cv_.notify_all();
     }
     
-    // 等待线程结束（避免重复代码，让StopStreaming也能等待线程完全停止）
-    if (download_thread_.joinable()) {
-        download_thread_.join();
-        ESP_LOGI(TAG, "Download thread joined in StopStreaming");
+    // 等待线程结束，使用更健壮的循环
+    for (int attempt = 0; attempt < 10; attempt++) {
+        if (!download_thread_.joinable()) {
+            break;
+        }
+        try {
+            if (download_thread_.joinable()) {
+                download_thread_.join();
+            }
+        } catch (...) {}
+        if (!download_thread_.joinable()) {
+            break;
+        }
+        try {
+            if (download_thread_.joinable()) {
+                download_thread_.detach();
+            }
+        } catch (...) {}
+        if (!download_thread_.joinable()) {
+            break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
     
+    // 安全重置download_thread_
+    if (download_thread_.joinable()) {
+        try {
+            download_thread_.detach();
+        } catch (...) {}
+    }
+    if (!download_thread_.joinable()) {
+        download_thread_ = std::thread();
+    } else {
+        std::thread new_thread;
+        download_thread_ = std::move(new_thread);
+    }
+    ESP_LOGI(TAG, "Download thread cleanup complete in StopStreaming");
+    
     // 等待播放线程结束，使用更安全的方式
-    if (play_thread_.joinable()) {
+    for (int attempt = 0; attempt < 10; attempt++) {
+        if (!play_thread_.joinable()) {
+            break;
+        }
         // 先设置停止标志
         is_playing_ = false;
         
@@ -555,7 +713,7 @@ bool Esp32Music::StopStreaming() {
         // 使用超时机制等待线程结束，避免死锁
         bool thread_finished = false;
         int wait_count = 0;
-        const int max_wait = 100; // 最多等待1秒
+        const int max_wait = 10; // 最多等待100ms
         
         while (!thread_finished && wait_count < max_wait) {
             vTaskDelay(pdMS_TO_TICKS(10));
@@ -577,6 +735,23 @@ bool Esp32Music::StopStreaming() {
                 ESP_LOGI(TAG, "Play thread joined in StopStreaming");
             }
         }
+        if (!play_thread_.joinable()) {
+            break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    
+    // 安全重置play_thread_
+    if (play_thread_.joinable()) {
+        try {
+            play_thread_.detach();
+        } catch (...) {}
+    }
+    if (!play_thread_.joinable()) {
+        play_thread_ = std::thread();
+    } else {
+        std::thread new_thread;
+        play_thread_ = std::move(new_thread);
     }
     
     // 在线程完全结束后，只在频谱模式下停止FFT显示

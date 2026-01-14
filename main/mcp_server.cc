@@ -242,43 +242,13 @@ void McpServer::AddCommonTools() {
             switch (bt_status) {
                 case XiaoZhiYunliaoS3::BT_STATUS::SUCCESS:
                     return "{\"success\": true, \"message\": \"operation successful\"}";
-                case XiaoZhiYunliaoS3::BT_STATUS::NO_BT_MODULE:
+                case XiaoZhiYunliaoS3::BT_STATUS::NO_MODULE:
                     return "{\"success\": false, \"message\": \"No 4G module installed\"}";
                 default:
                     return "{\"success\": false, \"message\": \"Unknown error occurred\"}";
             }
         });
-#if CONFIG_USE_BLUETOOTH
-    AddTool("self.system.switch_bluetooth",
-        "Switch Bluetooth on or off.\n"
-        "Args:\n"
-        "  `switch_on`: Boolean value to turn Bluetooth on (true) or off (false).\n"
-        "Return:\n"
-        "  A JSON object that provides the Bluetooth operation status and message.",
-        PropertyList({
-            Property("switch_on", kPropertyTypeBoolean)
-        }),
-        [&board](const PropertyList& properties) -> ReturnValue {
-            bool switch_on = properties["switch_on"].value<bool>();
-            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
-            XiaoZhiYunliaoS3::BT_STATUS bt_status = board1->SwitchBluetooth(switch_on);
-            ESP_LOGI(TAG, "SwitchBluetooth:%d", (int) bt_status);
 
-            // 根据状态码返回相应的JSON响应
-            switch (bt_status) {
-                case XiaoZhiYunliaoS3::BT_STATUS::SUCCESS:
-                    return "{\"success\": true, \"message\": \"Bluetooth operation successful\"}";
-                case XiaoZhiYunliaoS3::BT_STATUS::ALREADY_STARTED:
-                    return "{\"success\": false, \"message\": \"Bluetooth is already on\"}";
-                case XiaoZhiYunliaoS3::BT_STATUS::ALREADY_STOPPED:
-                    return "{\"success\": false, \"message\": \"Bluetooth is already off\"}";
-                case XiaoZhiYunliaoS3::BT_STATUS::NO_BT_MODULE:
-                    return "{\"success\": false, \"message\": \"No Bluetooth module installed\"}";
-                default:
-                    return "{\"success\": false, \"message\": \"Unknown error occurred\"}";
-            }
-        });
-#endif
     // System control tools
     AddTool("self.system.set_aec",
         "Enable or disable voice interruption mode (AEC:Acoustic Echo Cancellation). When enabled, the device can detect voice interruptions and respond accordingly.",

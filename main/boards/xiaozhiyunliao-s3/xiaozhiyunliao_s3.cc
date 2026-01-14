@@ -28,7 +28,11 @@ esp_lcd_panel_handle_t panel = nullptr;
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
     : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN, BOOT_4G_PIN),
       boot_button_(BOOT_BUTTON_PIN, false, KEY_EXPIRE_MS),
-      power_manager_(new PowerManager()){
+      power_manager_(new PowerManager()),
+      uart_num_(UART_NUM_1),
+      uart_queue_(nullptr),
+      isInstallUart_(false),
+      chbuf_(nullptr){
     power_manager_->Start5V();
     power_manager_->Initialize();
     InitializeI2c();
@@ -54,9 +58,6 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
             }
         }
     });
-    if(GetNetworkType() == NetworkType::WIFI){
-        power_manager_->Shutdown4G();//缺省关闭
-    }
 
     InitializeSpi();
     InitializeLCDDisplay();
@@ -74,26 +75,151 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
     }
     InitializePowerSaveTimer();
 
-    bt_emitter_= new BT_Emitter(UART_NUM_1, ML307_RX_PIN, ML307_TX_PIN);
-#if CONFIG_USE_BLUETOOTH
-    bt_emitter_->setStatusCallback([this](int status){
-        switch (status) {
-            case BT_Emitter::BT_CONNECTED:
-                ESP_LOGI(TAG, "蓝牙已连接");
-                switchBtMode(true);
-                break;
-            case BT_Emitter::BT_DISCONNECTED:
-                ESP_LOGI(TAG, "蓝牙已断开");
-                switchBtMode(false);
-                break;
-            case BT_Emitter::BT_NOT_INSTALLED:
-                ESP_LOGI(TAG, "蓝牙未安装");
+    bool isUsePSRAM = (heap_caps_get_free_size(MALLOC_CAP_SPIRAM) > 0);
+    if (isUsePSRAM) {
+        chbuf_ = (char *)heap_caps_malloc(chbufSize_, MALLOC_CAP_SPIRAM);
+    } else {
+        chbuf_ = (char *)malloc(chbufSize_);
+    }
+    memset(chbuf_, 0, chbufSize_);
+    // 检查4G模块是否存在，wifi模式下才需要检查并关闭4G
+    if(GetNetworkType() == NetworkType::WIFI){
+        // 0: 未检查过4G模块是否存在
+        // 1: 4G模块不存在
+        // 2: 4G模块存在
+        Settings settings("board", false);
+        int network_type = settings.GetInt("ok_4g", 0); 
+        if(network_type == 2){
+            power_manager_->Shutdown4G();
+        }else if(network_type == 0){
+            xTaskCreate([](void* arg) {
+                auto* board = static_cast<XiaoZhiYunliaoS3*>(arg);
+                XiaoZhiYunliaoS3::modultype modul_type = board->check4GModul();
+                Settings settings("board", true);
+                if (modul_type == XiaoZhiYunliaoS3::modultype::MODUL_4G) {
+                    settings.SetInt("ok_4g", 2);
+                    board->power_manager_->Shutdown4G();
+                }else{
+                    settings.SetInt("ok_4g", 1);
+                    board->InitializeBTEmitter();
+                }
+                vTaskDelete(NULL);
+            }, "check4g_modul", 2048, this, 5, NULL);
+        }else if(network_type == 1){
+            power_manager_->Start4G();
+            InitializeBTEmitter();
         }
-    });
-#endif
+    }
     ESP_LOGI(TAG, "Inited");
 }
+void XiaoZhiYunliaoS3::InitializeBTEmitter() {
+#if CONFIG_USE_BLUETOOTH
+    initGPIOLinkPin();
+#endif
+}
 
+void XiaoZhiYunliaoS3::gpioIsrHandler(void *arg) {
+    XiaoZhiYunliaoS3 *instance = static_cast<XiaoZhiYunliaoS3 *>(arg);
+    uint32_t gpio_num = MON_BTLINK_PIN;
+    xQueueSendFromISR(instance->m_gpio_evt_queue, &gpio_num, NULL);
+}
+
+void XiaoZhiYunliaoS3::gpioTask(void *arg) {
+    XiaoZhiYunliaoS3 *instance = static_cast<XiaoZhiYunliaoS3 *>(arg);
+    uint32_t io_num;
+    int last_level = -1;
+
+    for (;;) {
+        if (xQueueReceive(instance->m_gpio_evt_queue, &io_num, portMAX_DELAY)) {
+            vTaskDelay(pdMS_TO_TICKS(10));
+            int level = gpio_get_level((gpio_num_t)io_num);
+            if (level != last_level) {
+                last_level = level;
+                
+                if (level == 1) {
+                    ESP_LOGI(TAG, "GPIO %d high - BT connected", io_num);
+                    instance->switchBtMode(true);
+                } else {
+                    ESP_LOGI(TAG, "GPIO %d low - BT disconnected", io_num);
+                    instance->switchBtMode(false);
+                }
+            }
+        }
+    }
+    vTaskDelete(NULL);
+}
+
+bool XiaoZhiYunliaoS3::initGPIOLinkPin() {
+    if (MON_BTLINK_PIN == GPIO_NUM_NC) {
+        ESP_LOGW(TAG, "MON_BTLINK_PIN not configured, skipping GPIO interrupt setup");
+        return true;
+    }
+
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;
+    io_conf.pin_bit_mask = (1ULL << MON_BTLINK_PIN);
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+
+    if (gpio_config(&io_conf) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to configure GPIO %d", MON_BTLINK_PIN);
+        return false;
+    }
+
+    m_gpio_evt_queue = xQueueCreate(3, sizeof(uint32_t));
+    if (m_gpio_evt_queue == nullptr) {
+        ESP_LOGE(TAG, "Failed to create GPIO event queue");
+        return false;
+    }
+
+    BaseType_t ret = xTaskCreate(gpioTask, "gpio_task", 2048, this, 10, &m_gpio_task_handle);
+    if (ret != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create GPIO task");
+        vQueueDelete(m_gpio_evt_queue);
+        m_gpio_evt_queue = nullptr;
+        return false;
+    }
+
+    if (gpio_isr_handler_add(MON_BTLINK_PIN, gpioIsrHandler, this) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to add GPIO ISR handler");
+        vQueueDelete(m_gpio_evt_queue);
+        m_gpio_evt_queue = nullptr;
+        vTaskDelete(m_gpio_task_handle);
+        m_gpio_task_handle = nullptr;
+        return false;
+    }
+
+    int initial_level = gpio_get_level(MON_BTLINK_PIN);
+    if (initial_level == 1) {
+        switchBtMode(true);
+    }
+    ESP_LOGI(TAG, "MON_BTLINK_PIN %d initialized, initial level: %d", MON_BTLINK_PIN, initial_level);
+    
+    return true;
+}
+
+void XiaoZhiYunliaoS3::deinitGPIOLinkPin() {
+    if (MON_BTLINK_PIN == GPIO_NUM_NC) {
+        return;
+    }
+
+    if (MON_BTLINK_PIN != GPIO_NUM_NC) {
+        gpio_isr_handler_remove(MON_BTLINK_PIN);
+    }
+
+    if (m_gpio_task_handle != nullptr) {
+        vTaskDelete(m_gpio_task_handle);
+        m_gpio_task_handle = nullptr;
+    }
+
+    if (m_gpio_evt_queue != nullptr) {
+        vQueueDelete(m_gpio_evt_queue);
+        m_gpio_evt_queue = nullptr;
+    }
+
+    gpio_reset_pin(MON_BTLINK_PIN);
+}
 
 void XiaoZhiYunliaoS3::InitializePowerSaveTimer() {
     power_save_timer_ = new PowerSaveTimer(-1, 15, 600);//修改PowerSaveTimer为sleep=idle模式, shutdown=关机模式
@@ -270,102 +396,38 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
 
 //手工切换网络
 XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
-    if(GetNetworkType() == NetworkType::ML307){ //4G已开机，则关机4G
+    if(GetNetworkType() == NetworkType::ML307){ //4G已开机，则关机重启切换wifi
         SwitchNetworkType();
         return BT_STATUS::SUCCESS;
     }
-#if CONFIG_USE_BLUETOOTH
-    if(bt_emitter_->checkStarted()){//已开启蓝牙
-        bt_emitter_->stop();
-        switchBtMode(false);
-        getPowerManager()->Shutdown4G();
-        ESP_LOGI(TAG, "蓝牙已手动关闭");
-        return BT_STATUS::SUCCESS;
-    }else if(getPowerManager()->Get4GLevel() == 1){//未装蓝牙，且开启开关
-        bt_emitter_->stop();
-        switchBtMode(false);
-        getPowerManager()->Shutdown4G();
-        ESP_LOGI(TAG, "4G/蓝牙已手动关闭");
-        return BT_STATUS::SUCCESS;
-    }else{//开启开关
-        getPowerManager()->Start4G();
-        BT_Emitter::modultype modultype = bt_emitter_->getModulType();
-        if (modultype == BT_Emitter::modultype::MODUL_NONE) {
-            modultype = bt_emitter_->checkALLModul();
-        }
-        if (modultype == BT_Emitter::modultype::MODUL_4G) {
-            SwitchNetworkType();
-            return BT_STATUS::SUCCESS;
-        }else if (modultype == BT_Emitter::modultype::MODUL_BT) {
-            bt_emitter_->start();//启动蓝牙扫描
-            display_->ShowBT(true);
-            ESP_LOGI(TAG, "蓝牙已手动开启");
-            return BT_STATUS::SUCCESS;
-        }
-        bt_emitter_->stop();
-        switchBtMode(false);
-        getPowerManager()->Shutdown4G();
-        return BT_STATUS::NO_BT_MODULE;;
-    }
-#else
-    // 检测模块类型，如果是4G模块则切换网络类型
-    getPowerManager()->Start4G();
-    BT_Emitter::modultype modultype = bt_emitter_->check4GModul();
-    if (modultype == BT_Emitter::modultype::MODUL_4G) {
+    Settings settings("board", true);
+    int network_type = settings.GetInt("ok_4g", 0); 
+    if(network_type == 2){
         SwitchNetworkType();
         return BT_STATUS::SUCCESS;
     }else{
-        getPowerManager()->Shutdown4G();
-        return BT_STATUS::NO_BT_MODULE;
+        getPowerManager()->Start4G();
+        modultype modul_type = check4GModul();
+        if (modul_type == modultype::MODUL_4G) {
+            settings.SetInt("ok_4g", 2);
+            SwitchNetworkType();
+            return BT_STATUS::SUCCESS;
+        }else{
+            settings.SetInt("ok_4g", 1);
+            getPowerManager()->Shutdown4G();
+            return BT_STATUS::NO_MODULE;
+        }
     }
-#endif
 }
 
 #if CONFIG_USE_BLUETOOTH
-    //AI指令开启/关闭蓝牙
-    XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchBluetooth(bool switch_on){
-        if (switch_on) {//开启蓝牙
-            if (bt_emitter_->checkStarted()) {
-                // 已开启蓝牙
-                return BT_STATUS::ALREADY_STARTED;
-            } else {
-                getPowerManager()->Start4G();
-                BT_Emitter::modultype modultype = bt_emitter_->checkBTModul();
-                if (modultype == BT_Emitter::modultype::MODUL_BT) {
-                    bt_emitter_->start();//启动蓝牙扫描
-                    display_->ShowBT(true);
-                    return BT_STATUS::SUCCESS;
-                } else {
-                    // 未安装蓝牙模块
-                    bt_emitter_->stop();
-                    switchBtMode(false);
-                    getPowerManager()->Shutdown4G();
-                    return BT_STATUS::NO_BT_MODULE;
-                }
-            }
-        } else {//关闭蓝牙
-            if (bt_emitter_->checkStarted()) {
-                bt_emitter_->stop();
-                switchBtMode(false);
-                getPowerManager()->Shutdown4G();
-                return BT_STATUS::SUCCESS;
-            } else {
-                // 已关闭
-                getPowerManager()->Shutdown4G();
-                return BT_STATUS::ALREADY_STOPPED;
-            }
-        }
-    }
-
 void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
     auto& app = Application::GetInstance();
-    auto codec = static_cast<Es8388AudioCodec*>(GetAudioCodec());
     if (enable) { // 启用蓝牙模式
         if(app.GetAecMode() != kAecOff){
             switchAecMode(kAecOff);
             display_->ShowAEC(false);
         }
-        codec->EnablePA(false);
         display_->ShowBT(true);
     } else { // 禁用蓝牙模式
         display_->ShowBT(false);
@@ -375,7 +437,6 @@ void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
             switchAecMode((AecMode)storedMode);
             display_->ShowAEC(true);
         }
-        codec->EnablePA(true);
     }
 }
 #endif
@@ -467,5 +528,95 @@ void XiaoZhiYunliaoS3::SetPowerSaveMode(bool enabled) {
     DualNetworkBoard::SetPowerSaveMode(enabled);
 }
 
+bool XiaoZhiYunliaoS3::installUart() {
+    uart_config_t uart_config = {
+        .baud_rate = 921600,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT
+    };
+    
+    if (uart_param_config(uart_num_, &uart_config) != ESP_OK) {
+        ESP_LOGE(TAG, "UART parameter config failed");
+        return false;
+    }
+    
+    if (uart_set_pin(uart_num_, ML307_TX_PIN, ML307_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE) != ESP_OK) {
+        ESP_LOGE(TAG, "UART set pin failed");
+        return false;
+    }
+    
+    if (uart_driver_install(uart_num_, 512, 512, 10, &uart_queue_, 0) != ESP_OK) {
+        ESP_LOGE(TAG, "UART driver install failed");
+        return false;
+    }
+    
+    isInstallUart_ = true;
+    return true;
+}
+
+bool XiaoZhiYunliaoS3::uninstallUart() {
+    if (uart_driver_delete(uart_num_) != ESP_OK) {
+        ESP_LOGE(TAG, "UART driver delete failed");
+    }
+    
+    gpio_reset_pin(ML307_TX_PIN);
+    gpio_reset_pin(ML307_RX_PIN);
+    
+    if (uart_queue_ != nullptr) {
+        uart_queue_ = nullptr;
+    }
+    
+    isInstallUart_ = false;
+    return true;
+}
+
+XiaoZhiYunliaoS3::modultype XiaoZhiYunliaoS3::check4GModul() {
+    return checkModuleWithCommand("ATI\r\n", 921600, 10000000);
+}
+
+XiaoZhiYunliaoS3::modultype XiaoZhiYunliaoS3::checkModuleWithCommand(const char *command, int baudrate, int64_t timeout) {
+    if (!isInstallUart_) {
+        if (!installUart()) {
+            return MODUL_NONE;
+        }
+    }
+    
+    uart_set_baudrate(uart_num_, baudrate);
+    ESP_LOGI(TAG, "Sending command: %s", command);
+    uart_write_bytes(uart_num_, command, strlen(command));
+
+    int64_t startTime = esp_timer_get_time();
+    while ((esp_timer_get_time() - startTime) < timeout) {
+        size_t available = 0;
+        uart_get_buffered_data_len(uart_num_, &available);
+
+        if (available > 0) {
+            int len = uart_read_bytes(uart_num_, (uint8_t *)chbuf_, (available > chbufSize_ - 1) ? chbufSize_ - 1 : available, pdMS_TO_TICKS(10));
+
+            if (len > 0) {
+                chbuf_[len] = '\0';
+
+                char *line = strtok(chbuf_, "\n");
+                while (line != nullptr) {
+                    if (strlen(line) > 1) {
+                        if (strncmp(line, "+MATREADY", 9) == 0 ||
+                            strncmp(line, "CMCC", 4) == 0 ||
+                            strncmp(line, "ML307R", 6) == 0) {
+                            int timeout3 = (int)((esp_timer_get_time() - startTime) / 1000000);
+                            ESP_LOGI(TAG, "checkModul 4G in %ds:%s", timeout3, chbuf_);
+                            return MODUL_4G;
+                        }
+                    }
+                    line = strtok(nullptr, "\n");
+                }
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    return MODUL_NONE;
+}
 
 DECLARE_BOARD(XiaoZhiYunliaoS3);
