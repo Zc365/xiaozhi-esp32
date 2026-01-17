@@ -74,13 +74,12 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
         GetBacklight()->SetBrightness(60);
     }
     InitializePowerSaveTimer();
+    InitializeModul();
+    ESP_LOGI(TAG, "Inited");
+}
 
-    bool isUsePSRAM = (heap_caps_get_free_size(MALLOC_CAP_SPIRAM) > 0);
-    if (isUsePSRAM) {
-        chbuf_ = (char *)heap_caps_malloc(chbufSize_, MALLOC_CAP_SPIRAM);
-    } else {
-        chbuf_ = (char *)malloc(chbufSize_);
-    }
+void XiaoZhiYunliaoS3::InitializeModul() {
+    chbuf_ = (char *)heap_caps_malloc(chbufSize_, MALLOC_CAP_SPIRAM);
     memset(chbuf_, 0, chbufSize_);
     // 检查4G模块是否存在，wifi模式下才需要检查并关闭4G
     if(GetNetworkType() == NetworkType::WIFI){
@@ -110,11 +109,54 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
             InitializeBTEmitter();
         }
     }
-    ESP_LOGI(TAG, "Inited");
 }
 void XiaoZhiYunliaoS3::InitializeBTEmitter() {
 #if CONFIG_USE_BLUETOOTH
-    initGPIOLinkPin();
+    if (MON_BTLINK_PIN == GPIO_NUM_NC) {
+        ESP_LOGW(TAG, "MON_BTLINK_PIN not configured, skipping GPIO interrupt setup");
+        return;
+    }
+
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;
+    io_conf.pin_bit_mask = (1ULL << MON_BTLINK_PIN);
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+
+    if (gpio_config(&io_conf) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to configure GPIO %d", MON_BTLINK_PIN);
+        return;
+    }
+
+    m_gpio_evt_queue = xQueueCreate(3, sizeof(uint32_t));
+    if (m_gpio_evt_queue == nullptr) {
+        ESP_LOGE(TAG, "Failed to create GPIO event queue");
+        return;
+    }
+
+    BaseType_t ret = xTaskCreate(gpioTask, "gpio_task", 2048, this, 10, &m_gpio_task_handle);
+    if (ret != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create GPIO task");
+        vQueueDelete(m_gpio_evt_queue);
+        m_gpio_evt_queue = nullptr;
+        return;
+    }
+
+    if (gpio_isr_handler_add(MON_BTLINK_PIN, gpioIsrHandler, this) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to add GPIO ISR handler");
+        vQueueDelete(m_gpio_evt_queue);
+        m_gpio_evt_queue = nullptr;
+        vTaskDelete(m_gpio_task_handle);
+        m_gpio_task_handle = nullptr;
+        return;
+    }
+
+    int initial_level = gpio_get_level(MON_BTLINK_PIN);
+    if (initial_level == 1) {
+        switchBtMode(true);
+    }
+    ESP_LOGI(TAG, "MON_BTLINK_PIN %d initialized, initial level: %d", MON_BTLINK_PIN, initial_level);
 #endif
 }
 
@@ -148,58 +190,7 @@ void XiaoZhiYunliaoS3::gpioTask(void *arg) {
     }
     vTaskDelete(NULL);
 }
-
-bool XiaoZhiYunliaoS3::initGPIOLinkPin() {
-    if (MON_BTLINK_PIN == GPIO_NUM_NC) {
-        ESP_LOGW(TAG, "MON_BTLINK_PIN not configured, skipping GPIO interrupt setup");
-        return true;
-    }
-
-    gpio_config_t io_conf = {};
-    io_conf.intr_type = GPIO_INTR_ANYEDGE;
-    io_conf.pin_bit_mask = (1ULL << MON_BTLINK_PIN);
-    io_conf.mode = GPIO_MODE_INPUT;
-    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-
-    if (gpio_config(&io_conf) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to configure GPIO %d", MON_BTLINK_PIN);
-        return false;
-    }
-
-    m_gpio_evt_queue = xQueueCreate(3, sizeof(uint32_t));
-    if (m_gpio_evt_queue == nullptr) {
-        ESP_LOGE(TAG, "Failed to create GPIO event queue");
-        return false;
-    }
-
-    BaseType_t ret = xTaskCreate(gpioTask, "gpio_task", 2048, this, 10, &m_gpio_task_handle);
-    if (ret != pdPASS) {
-        ESP_LOGE(TAG, "Failed to create GPIO task");
-        vQueueDelete(m_gpio_evt_queue);
-        m_gpio_evt_queue = nullptr;
-        return false;
-    }
-
-    if (gpio_isr_handler_add(MON_BTLINK_PIN, gpioIsrHandler, this) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to add GPIO ISR handler");
-        vQueueDelete(m_gpio_evt_queue);
-        m_gpio_evt_queue = nullptr;
-        vTaskDelete(m_gpio_task_handle);
-        m_gpio_task_handle = nullptr;
-        return false;
-    }
-
-    int initial_level = gpio_get_level(MON_BTLINK_PIN);
-    if (initial_level == 1) {
-        switchBtMode(true);
-    }
-    ESP_LOGI(TAG, "MON_BTLINK_PIN %d initialized, initial level: %d", MON_BTLINK_PIN, initial_level);
-    
-    return true;
-}
-
-void XiaoZhiYunliaoS3::deinitGPIOLinkPin() {
+void XiaoZhiYunliaoS3::deinitBTEmitter() {
     if (MON_BTLINK_PIN == GPIO_NUM_NC) {
         return;
     }
@@ -407,12 +398,14 @@ XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
         return BT_STATUS::SUCCESS;
     }else{
         getPowerManager()->Start4G();
+        display_->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);
         modultype modul_type = check4GModul();
         if (modul_type == modultype::MODUL_4G) {
             settings.SetInt("ok_4g", 2);
             SwitchNetworkType();
             return BT_STATUS::SUCCESS;
         }else{
+            display_->ShowNotification(Lang::Strings::SWITCH_TO_WIFI_NETWORK);
             settings.SetInt("ok_4g", 1);
             getPowerManager()->Shutdown4G();
             return BT_STATUS::NO_MODULE;

@@ -36,6 +36,7 @@ private:
     void InitializeButtons();
     void InitializePowerSaveTimer();
     void InitializeBTEmitter();
+    void InitializeModul();
     
     modultype check4GModul();
     modultype checkModuleWithCommand(const char *command, int baudrate, int64_t timeout);
@@ -44,8 +45,7 @@ private:
     
     static void gpioIsrHandler(void *arg);
     static void gpioTask(void *arg);
-    bool initGPIOLinkPin();
-    void deinitGPIOLinkPin();
+    void deinitBTEmitter();
     
     QueueHandle_t m_gpio_evt_queue = nullptr;
     TaskHandle_t m_gpio_task_handle = nullptr;
