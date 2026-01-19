@@ -27,6 +27,7 @@ private:
     uart_port_t uart_num_;
     QueueHandle_t uart_queue_;
     bool isInstallUart_;
+    int is4Ginstalled;
     char *chbuf_;
     const uint16_t chbufSize_ = 64;
     
@@ -43,11 +44,9 @@ private:
     bool installUart();
     bool uninstallUart();
     
-    static void gpioIsrHandler(void *arg);
     static void gpioTask(void *arg);
     void deinitBTEmitter();
     
-    QueueHandle_t m_gpio_evt_queue = nullptr;
     TaskHandle_t m_gpio_task_handle = nullptr;
 public:
     enum class BT_STATUS {

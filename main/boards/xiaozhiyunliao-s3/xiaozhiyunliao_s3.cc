@@ -32,6 +32,7 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
       uart_num_(UART_NUM_1),
       uart_queue_(nullptr),
       isInstallUart_(false),
+      is4Ginstalled(0),
       chbuf_(nullptr){
     power_manager_->Start5V();
     power_manager_->Initialize();
@@ -81,44 +82,36 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
 void XiaoZhiYunliaoS3::InitializeModul() {
     chbuf_ = (char *)heap_caps_malloc(chbufSize_, MALLOC_CAP_SPIRAM);
     memset(chbuf_, 0, chbufSize_);
-    // 检查4G模块是否存在，wifi模式下才需要检查并关闭4G
+    // wifi模式下需要检查并关闭4G
     if(GetNetworkType() == NetworkType::WIFI){
         // 0: 未检查过4G模块是否存在
-        // 1: 4G模块不存在
-        // 2: 4G模块存在
-        Settings settings("board", false);
-        int network_type = settings.GetInt("ok_4g", 0); 
-        if(network_type == 2){
-            power_manager_->Shutdown4G();
-        }else if(network_type == 0){
-            xTaskCreate([](void* arg) {
-                auto* board = static_cast<XiaoZhiYunliaoS3*>(arg);
-                XiaoZhiYunliaoS3::modultype modul_type = board->check4GModul();
-                Settings settings("board", true);
-                if (modul_type == XiaoZhiYunliaoS3::modultype::MODUL_4G) {
-                    settings.SetInt("ok_4g", 2);
-                    board->power_manager_->Shutdown4G();
-                }else{
-                    settings.SetInt("ok_4g", 1);
-                    board->InitializeBTEmitter();
-                }
-                vTaskDelete(NULL);
-            }, "check4g_modul", 2048, this, 5, NULL);
-        }else if(network_type == 1){
-            power_manager_->Start4G();
-            InitializeBTEmitter();
-        }
+        // -1: 4G模块不存在
+        // 1: 4G模块存在
+        power_manager_->Start4G();
+        xTaskCreate([](void* arg) {
+            auto* board = static_cast<XiaoZhiYunliaoS3*>(arg);
+            XiaoZhiYunliaoS3::modultype modul_type = board->check4GModul();
+            if (modul_type == XiaoZhiYunliaoS3::modultype::MODUL_4G) {
+                board->is4Ginstalled = 1;
+                board->power_manager_->Shutdown4G();
+            }else{
+                board->is4Ginstalled = -1;
+                board->InitializeBTEmitter();
+            }
+            ESP_LOGI(TAG, "is4Ginstalled: %d", board->is4Ginstalled);
+            vTaskDelete(NULL);
+        }, "check4g_modul", 2048, this, 5, NULL);
     }
 }
 void XiaoZhiYunliaoS3::InitializeBTEmitter() {
 #if CONFIG_USE_BLUETOOTH
     if (MON_BTLINK_PIN == GPIO_NUM_NC) {
-        ESP_LOGW(TAG, "MON_BTLINK_PIN not configured, skipping GPIO interrupt setup");
+        ESP_LOGW(TAG, "MON_BTLINK_PIN not configured, skipping GPIO polling setup");
         return;
     }
 
     gpio_config_t io_conf = {};
-    io_conf.intr_type = GPIO_INTR_ANYEDGE;
+    io_conf.intr_type = GPIO_INTR_DISABLE;
     io_conf.pin_bit_mask = (1ULL << MON_BTLINK_PIN);
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
@@ -129,62 +122,30 @@ void XiaoZhiYunliaoS3::InitializeBTEmitter() {
         return;
     }
 
-    m_gpio_evt_queue = xQueueCreate(3, sizeof(uint32_t));
-    if (m_gpio_evt_queue == nullptr) {
-        ESP_LOGE(TAG, "Failed to create GPIO event queue");
-        return;
-    }
-
     BaseType_t ret = xTaskCreate(gpioTask, "gpio_task", 2048, this, 10, &m_gpio_task_handle);
     if (ret != pdPASS) {
         ESP_LOGE(TAG, "Failed to create GPIO task");
-        vQueueDelete(m_gpio_evt_queue);
-        m_gpio_evt_queue = nullptr;
         return;
     }
-
-    if (gpio_isr_handler_add(MON_BTLINK_PIN, gpioIsrHandler, this) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to add GPIO ISR handler");
-        vQueueDelete(m_gpio_evt_queue);
-        m_gpio_evt_queue = nullptr;
-        vTaskDelete(m_gpio_task_handle);
-        m_gpio_task_handle = nullptr;
-        return;
-    }
-
-    int initial_level = gpio_get_level(MON_BTLINK_PIN);
-    if (initial_level == 1) {
-        switchBtMode(true);
-    }
-    ESP_LOGI(TAG, "MON_BTLINK_PIN %d initialized, initial level: %d", MON_BTLINK_PIN, initial_level);
 #endif
-}
-
-void XiaoZhiYunliaoS3::gpioIsrHandler(void *arg) {
-    XiaoZhiYunliaoS3 *instance = static_cast<XiaoZhiYunliaoS3 *>(arg);
-    uint32_t gpio_num = MON_BTLINK_PIN;
-    xQueueSendFromISR(instance->m_gpio_evt_queue, &gpio_num, NULL);
 }
 
 void XiaoZhiYunliaoS3::gpioTask(void *arg) {
     XiaoZhiYunliaoS3 *instance = static_cast<XiaoZhiYunliaoS3 *>(arg);
-    uint32_t io_num;
     int last_level = -1;
 
     for (;;) {
-        if (xQueueReceive(instance->m_gpio_evt_queue, &io_num, portMAX_DELAY)) {
-            vTaskDelay(pdMS_TO_TICKS(10));
-            int level = gpio_get_level((gpio_num_t)io_num);
-            if (level != last_level) {
-                last_level = level;
-                
-                if (level == 1) {
-                    ESP_LOGI(TAG, "GPIO %d high - BT connected", io_num);
-                    instance->switchBtMode(true);
-                } else {
-                    ESP_LOGI(TAG, "GPIO %d low - BT disconnected", io_num);
-                    instance->switchBtMode(false);
-                }
+        vTaskDelay(pdMS_TO_TICKS(100));
+        int level = gpio_get_level(MON_BTLINK_PIN);
+        if (level != last_level) {
+            last_level = level;
+            
+            if (level == 1) {
+                ESP_LOGI(TAG, "GPIO %d high - BT connected", MON_BTLINK_PIN);
+                instance->switchBtMode(true);
+            } else {
+                ESP_LOGI(TAG, "GPIO %d low - BT disconnected", MON_BTLINK_PIN);
+                instance->switchBtMode(false);
             }
         }
     }
@@ -195,18 +156,9 @@ void XiaoZhiYunliaoS3::deinitBTEmitter() {
         return;
     }
 
-    if (MON_BTLINK_PIN != GPIO_NUM_NC) {
-        gpio_isr_handler_remove(MON_BTLINK_PIN);
-    }
-
     if (m_gpio_task_handle != nullptr) {
         vTaskDelete(m_gpio_task_handle);
         m_gpio_task_handle = nullptr;
-    }
-
-    if (m_gpio_evt_queue != nullptr) {
-        vQueueDelete(m_gpio_evt_queue);
-        m_gpio_evt_queue = nullptr;
     }
 
     gpio_reset_pin(MON_BTLINK_PIN);
@@ -391,9 +343,7 @@ XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
         SwitchNetworkType();
         return BT_STATUS::SUCCESS;
     }
-    Settings settings("board", true);
-    int network_type = settings.GetInt("ok_4g", 0); 
-    if(network_type == 2){
+    if(is4Ginstalled == 1){
         SwitchNetworkType();
         return BT_STATUS::SUCCESS;
     }else{
@@ -401,13 +351,12 @@ XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
         display_->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);
         modultype modul_type = check4GModul();
         if (modul_type == modultype::MODUL_4G) {
-            settings.SetInt("ok_4g", 2);
+            is4Ginstalled = 1;
             SwitchNetworkType();
             return BT_STATUS::SUCCESS;
         }else{
             display_->ShowNotification(Lang::Strings::SWITCH_TO_WIFI_NETWORK);
-            settings.SetInt("ok_4g", 1);
-            getPowerManager()->Shutdown4G();
+            is4Ginstalled = -1;
             return BT_STATUS::NO_MODULE;
         }
     }
