@@ -80,14 +80,13 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
 }
 
 void XiaoZhiYunliaoS3::InitializeModul() {
-    chbuf_ = (char *)heap_caps_malloc(chbufSize_, MALLOC_CAP_SPIRAM);
-    memset(chbuf_, 0, chbufSize_);
-    // wifi模式下需要检查并关闭4G
+    power_manager_->Start4G();
     if(GetNetworkType() == NetworkType::WIFI){
         // 0: 未检查过4G模块是否存在
         // -1: 4G模块不存在
         // 1: 4G模块存在
-        power_manager_->Start4G();
+        chbuf_ = (char *)heap_caps_malloc(chbufSize_, MALLOC_CAP_SPIRAM);
+        memset(chbuf_, 0, chbufSize_);
         xTaskCreate([](void* arg) {
             auto* board = static_cast<XiaoZhiYunliaoS3*>(arg);
             XiaoZhiYunliaoS3::modultype modul_type = board->check4GModul();
@@ -103,6 +102,41 @@ void XiaoZhiYunliaoS3::InitializeModul() {
         }, "check4g_modul", 2048, this, 5, NULL);
     }
 }
+
+XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
+    if(GetNetworkType() == NetworkType::ML307){
+        //4G已开机，则重启切换wifi
+        SwitchNetworkType();
+        return BT_STATUS::SUCCESS;
+    }
+    getPowerManager()->Start4G();
+    if(is4Ginstalled == 1){
+        SwitchNetworkType();
+        return BT_STATUS::SUCCESS;
+    }else if(is4Ginstalled == 0){
+        //等待启动检查
+        while(is4Ginstalled == 0){
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+        if(is4Ginstalled == 1){
+            SwitchNetworkType();
+            return BT_STATUS::SUCCESS;
+        }
+    }else{
+        display_->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);
+        modultype modul_type = check4GModul();
+        if (modul_type == modultype::MODUL_4G) {
+            is4Ginstalled = 1;
+            SwitchNetworkType();
+            return BT_STATUS::SUCCESS;
+        }else{
+            display_->ShowNotification(Lang::Strings::SWITCH_TO_WIFI_NETWORK);
+            is4Ginstalled = -1;
+        }
+    }
+    return BT_STATUS::NO_MODULE;
+}
+
 void XiaoZhiYunliaoS3::InitializeBTEmitter() {
 #if CONFIG_USE_BLUETOOTH
     if (MON_BTLINK_PIN == GPIO_NUM_NC) {
@@ -337,30 +371,6 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     });
 }
 
-//手工切换网络
-XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
-    if(GetNetworkType() == NetworkType::ML307){ //4G已开机，则关机重启切换wifi
-        SwitchNetworkType();
-        return BT_STATUS::SUCCESS;
-    }
-    if(is4Ginstalled == 1){
-        SwitchNetworkType();
-        return BT_STATUS::SUCCESS;
-    }else{
-        getPowerManager()->Start4G();
-        display_->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);
-        modultype modul_type = check4GModul();
-        if (modul_type == modultype::MODUL_4G) {
-            is4Ginstalled = 1;
-            SwitchNetworkType();
-            return BT_STATUS::SUCCESS;
-        }else{
-            display_->ShowNotification(Lang::Strings::SWITCH_TO_WIFI_NETWORK);
-            is4Ginstalled = -1;
-            return BT_STATUS::NO_MODULE;
-        }
-    }
-}
 
 #if CONFIG_USE_BLUETOOTH
 void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
