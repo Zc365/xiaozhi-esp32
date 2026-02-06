@@ -16,6 +16,8 @@
 #include <string>
 #include <mutex>
 
+extern const lv_image_dsc_t logo;
+
 enum class PageIndex {
     PAGE_CHAT = 0,
     PAGE_IDLE = 1,
@@ -86,6 +88,9 @@ protected:
     lv_obj_t* humidity_label1_ = nullptr;
     lv_obj_t* humidity_label2_ = nullptr;
     lv_obj_t* hint_label_ = nullptr;
+    
+    lv_obj_t* logo_image_ = nullptr;
+    lv_timer_t* logo_timer_ = nullptr;
  
     PageIndex lv_page_index = PageIndex::PAGE_CHAT;
     std::mutex status_mutex_;

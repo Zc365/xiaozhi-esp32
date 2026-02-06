@@ -72,26 +72,55 @@ void XiaoziyunliaoDisplay::SetupUI() {
     DisplayLockGuard lock(this);
     LcdDisplay::SetupUI();
 
-    // 创建tabview，填充整个屏幕
+    lv_obj_t* scr = lv_scr_act();
+
+    logo_image_ = lv_image_create(scr);
+    lv_image_set_src(logo_image_, &logo);
+    lv_obj_set_size(logo_image_, LV_HOR_RES, LV_VER_RES);
+    lv_obj_center(logo_image_);
+    lv_obj_set_style_bg_color(logo_image_, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(logo_image_, LV_OPA_COVER, 0);
+
+    lv_obj_add_flag(status_bar_, LV_OBJ_FLAG_HIDDEN);
+
+    auto logoTimerCallback = [](lv_timer_t* t) {
+        auto* display = static_cast<XiaoziyunliaoDisplay*>(lv_timer_get_user_data(t));
+        DisplayLockGuard lock(display);
+        
+        if (display->logo_image_) {
+            lv_obj_del(display->logo_image_);
+            display->logo_image_ = nullptr;
+        }
+        
+        if (display->logo_timer_) {
+            lv_timer_del(display->logo_timer_);
+            display->logo_timer_ = nullptr;
+        }
+        
+        lv_obj_remove_flag(display->status_bar_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(display->tabview_, LV_OBJ_FLAG_HIDDEN);
+    };
+    
+    logo_timer_ = lv_timer_create(logoTimerCallback, 3000, this);
+
     tabview_ = lv_tabview_create(lv_scr_act());
     lv_obj_set_size(tabview_, LV_HOR_RES, LV_VER_RES - text_font->line_height);
-    lv_obj_align_to(tabview_, status_bar_, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);  // 紧贴
-    // 隐藏标签栏
+    lv_obj_align_to(tabview_, status_bar_, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
     lv_tabview_set_tab_bar_position(tabview_, LV_DIR_TOP);
     lv_tabview_set_tab_bar_size(tabview_, 0);
     lv_obj_t * tab_btns = lv_tabview_get_tab_btns(tabview_);
     lv_obj_add_flag(tab_btns, LV_OBJ_FLAG_HIDDEN);
-    // 设置tabview的滚动捕捉模式，确保滑动后停留在固定位置
     lv_obj_t * content = lv_tabview_get_content(tabview_);
     lv_obj_set_scroll_snap_x(content, LV_SCROLL_SNAP_CENTER);
     
-    // 创建两个TAB页面
     tab_main = lv_tabview_add_tab(tabview_, "TabMain");
     tab_idle = lv_tabview_add_tab(tabview_, "TabIdle");
     lv_obj_remove_flag(tab_main, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(tab_main, LV_SCROLLBAR_MODE_OFF);
     lv_obj_remove_flag(tab_idle, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(tab_idle, LV_SCROLLBAR_MODE_OFF);
+
+    lv_obj_add_flag(tabview_, LV_OBJ_FLAG_HIDDEN);
 
     SetupTabMain();
     SetupTabIdle();
