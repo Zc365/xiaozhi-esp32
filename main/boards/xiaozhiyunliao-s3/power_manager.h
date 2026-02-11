@@ -21,6 +21,8 @@ public:
     int Get4GLevel(){ return is_4g_on_; };
     void Start4G();
     void Shutdown4G();
+    void Enable4G();
+    void Disable4G();
     void MCUSleep();
     void CheckBatteryStatus();
     void OnChargingStatusChanged(std::function<void(bool)> callback);

@@ -22,8 +22,9 @@
 
 #define BOOT_BUTTON_PIN         GPIO_NUM_2
 #define BOOT_5V_PIN             GPIO_NUM_3      //5V升压输出
-#define BOOT_4G_PIN             GPIO_NUM_5      //4G模块使能
 #define MON_BTLINK_PIN          GPIO_NUM_4      //检测BT连接状态
+#define BOOT_4G5V_PIN           GPIO_NUM_5      //4G模块供电
+#define BOOT_4GEN_PIN           GPIO_NUM_6      //4G模块使能
 #define MON_BATT_PIN            GPIO_NUM_43    	//检测PMU电池指示
 #define MON_BATT_CNT            70    	        //检测PMU电池秒数
 #define MON_USB_PIN				GPIO_NUM_47    	//检测USB插入

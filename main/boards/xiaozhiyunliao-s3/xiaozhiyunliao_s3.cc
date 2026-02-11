@@ -26,7 +26,7 @@ LV_FONT_DECLARE(font_puhui_20_4);
 esp_lcd_panel_handle_t panel = nullptr;
 
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
-    : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN, BOOT_4G_PIN),
+    : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN, GPIO_NUM_NC),
       boot_button_(BOOT_BUTTON_PIN, false, KEY_EXPIRE_MS),
       power_manager_(new PowerManager()),
       uart_num_(UART_NUM_1),
@@ -81,6 +81,7 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
 
 void XiaoZhiYunliaoS3::InitializeModul() {
     power_manager_->Start4G();
+    power_manager_->Enable4G();
     if(GetNetworkType() == NetworkType::WIFI){
         // 0: 未检查过4G模块是否存在
         // -1: 4G模块不存在
@@ -92,11 +93,14 @@ void XiaoZhiYunliaoS3::InitializeModul() {
             XiaoZhiYunliaoS3::modultype modul_type = board->check4GModul();
             if (modul_type == XiaoZhiYunliaoS3::modultype::MODUL_4G) {
                 board->is4Ginstalled = 1;
-                board->power_manager_->Shutdown4G();
+                board->power_manager_->Shutdown4G();//D19带4G电源开关，关闭4G，不能和蓝牙并存,D21此代码无用
+#if CONFIG_USE_BLUETOOTH
             }else{
                 board->is4Ginstalled = -1;
                 board->InitializeBTEmitter();
+#endif
             }
+            board->power_manager_->Disable4G();
             ESP_LOGI(TAG, "is4Ginstalled: %d", board->is4Ginstalled);
             vTaskDelete(NULL);
         }, "check4g_modul", 2048, this, 5, NULL);
@@ -109,11 +113,10 @@ XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
         SwitchNetworkType();
         return BT_STATUS::SUCCESS;
     }
-    getPowerManager()->Start4G();
-    if(is4Ginstalled == 1){
+    if(is4Ginstalled == 1){ //已经安装4G模块
         SwitchNetworkType();
         return BT_STATUS::SUCCESS;
-    }else if(is4Ginstalled == 0){
+    }else if(is4Ginstalled == 0){ //还在检测4G模块
         //等待启动检查
         while(is4Ginstalled == 0){
             vTaskDelay(pdMS_TO_TICKS(100));
@@ -122,7 +125,9 @@ XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
             SwitchNetworkType();
             return BT_STATUS::SUCCESS;
         }
-    }else{
+    }else{ //没安装4G模块，重新检测
+        power_manager_->Start4G();
+        power_manager_->Enable4G();
         display_->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);
         modultype modul_type = check4GModul();
         if (modul_type == modultype::MODUL_4G) {
@@ -130,6 +135,8 @@ XiaoZhiYunliaoS3::BT_STATUS XiaoZhiYunliaoS3::SwitchNetwork() {
             SwitchNetworkType();
             return BT_STATUS::SUCCESS;
         }else{
+            power_manager_->Shutdown4G();
+            power_manager_->Disable4G();
             display_->ShowNotification(Lang::Strings::SWITCH_TO_WIFI_NETWORK);
             is4Ginstalled = -1;
         }
@@ -156,7 +163,7 @@ void XiaoZhiYunliaoS3::InitializeBTEmitter() {
         return;
     }
 
-    BaseType_t ret = xTaskCreate(gpioTask, "gpio_task", 2048, this, 10, &m_gpio_task_handle);
+    BaseType_t ret = xTaskCreate(gpioTask, "gpio_task", 3072, this, 10, &m_gpio_task_handle);
     if (ret != pdPASS) {
         ESP_LOGE(TAG, "Failed to create GPIO task");
         return;
@@ -176,10 +183,14 @@ void XiaoZhiYunliaoS3::gpioTask(void *arg) {
             
             if (level == 1) {
                 ESP_LOGI(TAG, "GPIO %d high - BT connected", MON_BTLINK_PIN);
-                instance->switchBtMode(true);
+                if (!instance->wifi_config_mode_) {
+                    instance->switchBtMode(true);
+                }
             } else {
                 ESP_LOGI(TAG, "GPIO %d low - BT disconnected", MON_BTLINK_PIN);
-                instance->switchBtMode(false);
+                if (!instance->wifi_config_mode_) {
+                    instance->switchBtMode(false);
+                }
             }
         }
     }
@@ -378,7 +389,7 @@ void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
     if (enable) { // 启用蓝牙模式
         if(app.GetAecMode() != kAecOff){
             switchAecMode(kAecOff);
-            display_->ShowAEC(false);
+            // display_->ShowAEC(false);
         }
         display_->ShowBT(true);
     } else { // 禁用蓝牙模式
@@ -387,7 +398,7 @@ void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
         int storedMode = settings.GetInt("mode", kAecOnDeviceSide);
         if(storedMode != kAecOff && app.GetAecMode() == kAecOff){
             switchAecMode((AecMode)storedMode);
-            display_->ShowAEC(true);
+            // display_->ShowAEC(true);
         }
     }
 }
@@ -401,11 +412,6 @@ void XiaoZhiYunliaoS3::switchAecMode(AecMode mode) {
     app.SetAecMode(mode);
     // 显示通知
     display_->ShowAEC(mode != kAecOff);
-    if (mode != kAecOff) {
-        display_->ShowNotification(Lang::Strings::RTC_MODE_ON);
-    } else {
-        display_->ShowNotification(Lang::Strings::RTC_MODE_OFF);
-    }
 }
 
 void XiaoZhiYunliaoS3::switchTFT() {
@@ -460,6 +466,7 @@ void XiaoZhiYunliaoS3::Sleep() {
     if (panel) {
         esp_lcd_panel_disp_on_off(panel, false);
     }
+    power_manager_->Disable4G();
     power_manager_->Shutdown4G();
     power_manager_->Shutdown5V();
     power_manager_->MCUSleep();

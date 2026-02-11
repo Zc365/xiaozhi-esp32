@@ -56,7 +56,7 @@ void PowerManager::Initialize(){
 
     // 初始化4G控制引脚
     gpio_config_t io_conf_4g = {
-        .pin_bit_mask = 1<<BOOT_4G_PIN,
+        .pin_bit_mask = (1<<BOOT_4G5V_PIN) | (1<<BOOT_4GEN_PIN),
         .mode = GPIO_MODE_OUTPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_ENABLE,
@@ -165,7 +165,7 @@ void PowerManager::Shutdown5V() {
 }
 
 void PowerManager::Start4G() {
-    gpio_set_level(BOOT_4G_PIN, 1);
+    gpio_set_level(BOOT_4G5V_PIN, 1);
     
     // 重置ML307_RX_PIN和ML307_TX_PIN，移除Shutdown4G中的配置
     gpio_reset_pin(ML307_RX_PIN);
@@ -174,9 +174,16 @@ void PowerManager::Start4G() {
     is_4g_on_ = 1;
 }
 
+void PowerManager::Enable4G() {
+    gpio_set_level(BOOT_4GEN_PIN, 1);
+}
+
+void PowerManager::Disable4G() {
+    gpio_set_level(BOOT_4GEN_PIN, 0);
+}
 
 void PowerManager::Shutdown4G() {
-    gpio_set_level(BOOT_4G_PIN, 0);
+    gpio_set_level(BOOT_4G5V_PIN, 0);
     
     // 配置ML307_RX_PIN和ML307_TX_PIN为下拉输出，并设置为0
     gpio_config_t io_conf_ml307 = {
